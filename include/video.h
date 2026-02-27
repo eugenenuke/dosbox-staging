@@ -77,6 +77,7 @@ void GFX_LosingFocus(void);
 
 bool GFX_IsFullscreen(void);
 bool GFX_IsOpenGL(void);
+void GFX_GL_SanitizeContext(void);
 void GFX_SwitchLazyFullscreen(bool lazy);
 bool GFX_LazyFullscreenRequested(void);
 void GFX_SwitchFullscreenNoReset(void);

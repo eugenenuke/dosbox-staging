@@ -1432,6 +1432,7 @@ static void process_msg(Bitu value)
 	GLIDE_ResetScreen(true);
 
 	statWMInfo();
+	GFX_GL_SanitizeContext();
 
 	k = FP.grRFunction1p6i(hwnd, param[2], param[3], param[4], param[5], param[6], param[7]);
 	if(k == FXFALSE) {

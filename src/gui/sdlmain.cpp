@@ -153,6 +153,7 @@ PFNGLSHADERSOURCEPROC_NP glShaderSource = NULL;
 PFNGLUNIFORM2FPROC glUniform2f = NULL;
 PFNGLUNIFORM1IPROC glUniform1i = NULL;
 PFNGLUSEPROGRAMPROC glUseProgram = NULL;
+PFNGLACTIVETEXTUREPROC glActiveTexture = NULL;
 PFNGLVERTEXATTRIBPOINTERPROC glVertexAttribPointer = NULL;
 }
 
@@ -177,6 +178,7 @@ PFNGLVERTEXATTRIBPOINTERPROC glVertexAttribPointer = NULL;
 #define glUniform2f               gl2::glUniform2f
 #define glUniform1i               gl2::glUniform1i
 #define glUseProgram              gl2::glUseProgram
+#define glActiveTexture           gl2::glActiveTexture
 #define glVertexAttribPointer     gl2::glVertexAttribPointer
 
 #endif // C_OPENGL
@@ -2187,11 +2189,12 @@ static void GUI_StartUp(Section * sec) {
 			glUniform2f = (PFNGLUNIFORM2FPROC)SDL_GL_GetProcAddress("glUniform2f");
 			glUniform1i = (PFNGLUNIFORM1IPROC)SDL_GL_GetProcAddress("glUniform1i");
 			glUseProgram = (PFNGLUSEPROGRAMPROC)SDL_GL_GetProcAddress("glUseProgram");
+			glActiveTexture = (PFNGLACTIVETEXTUREPROC)SDL_GL_GetProcAddress("glActiveTexture");
 			glVertexAttribPointer = (PFNGLVERTEXATTRIBPOINTERPROC)SDL_GL_GetProcAddress("glVertexAttribPointer");
 			sdl.opengl.use_shader = (glAttachShader && glCompileShader && glCreateProgram && glDeleteProgram && glDeleteShader && \
 				glEnableVertexAttribArray && glGetAttribLocation && glGetProgramiv && glGetProgramInfoLog && \
 				glGetShaderiv && glGetShaderInfoLog && glGetUniformLocation && glLinkProgram && glShaderSource && \
-				glUniform2f && glUniform1i && glUseProgram && glVertexAttribPointer);
+				glUniform2f && glUniform1i && glUseProgram && glActiveTexture && glVertexAttribPointer);
 
 			sdl.opengl.buffer=0;
 			sdl.opengl.framebuf=0;
@@ -3342,6 +3345,37 @@ void GFX_GL_SwapBuffers(void) {
     if (sdl.window) {
         SDL_GL_SwapWindow(sdl.window);
     }
+#endif
+}
+
+void GFX_GL_SanitizeContext(void) {
+#if C_OPENGL
+	if (sdl.desktop.type == SCREEN_OPENGL && SDL_GL_GetCurrentContext()) {
+		if (glUseProgram) glUseProgram(0);
+		if (glBindBufferARB) {
+			glBindBufferARB(GL_ARRAY_BUFFER_ARB, 0);
+			glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB, 0);
+			glBindBufferARB(GL_PIXEL_UNPACK_BUFFER_EXT, 0);
+		}
+		glDisable(GL_SCISSOR_TEST);
+		glDisable(GL_STENCIL_TEST);
+		glDisable(GL_DEPTH_TEST);
+		glDisable(GL_BLEND);
+		glDisable(GL_CULL_FACE);
+		glDisable(GL_TEXTURE_2D);
+		if (glActiveTexture) glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, 0);
+
+		int w, h;
+		SDL_GL_GetDrawableSize(sdl.window, &w, &h);
+		glViewport(0, 0, w, h);
+		glScissor(0, 0, w, h);
+
+		glClearColor(0, 0, 0, 1);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+		SDL_GL_SwapWindow(sdl.window);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+	}
 #endif
 }
 
