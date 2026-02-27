@@ -591,7 +591,7 @@ void GLIDE_ResetScreen(bool update)
 	// and resize when mapper and/or GUI finish
 	  update)) {
 	    SDL_SetVideoMode_Wrap(glide.width,glide.height,0,
-		(glide.fullscreen[0]?SDL_FULLSCREEN:0)|SDL_ANYFORMAT|SDL_SWSURFACE);
+		(GFX_IsFullscreen()?SDL_FULLSCREEN:0)|SDL_ANYFORMAT|SDL_SWSURFACE);
 	}
 }
 
@@ -1413,7 +1413,7 @@ static void process_msg(Bitu value)
 #define WRAPPER_FLAG_ANNOTATE               (0x10)
 #define WRAPPER_FLAG_FRAMEBUFFER_SRGB       (0x20)
             uint32_t flags =
-                (glide.fullscreen[0]? 0:WRAPPER_FLAG_WINDOWED) |
+                (GFX_IsFullscreen()? 0:WRAPPER_FLAG_WINDOWED) |
                 (VOODOO_Stat()? WRAPPER_FLAG_ANNOTATE:0) |
                 (VOODOO_MSAA() << 2) |
                 (VOODOO_SRGB()? WRAPPER_FLAG_FRAMEBUFFER_SRGB:0);
