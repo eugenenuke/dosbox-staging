@@ -35,7 +35,10 @@
 #include "SDL_thread.h"
 
 #if defined(C_SDL_SOUND)
-#include "SDL_sound.h"
+#undef SDL_MAJOR_VERSION
+#define SDL_MAJOR_VERSION 2
+#define SDL_h_
+#include "SDL2/SDL_sound.h"
 #endif
 
 #define RAW_SECTOR_SIZE		2352

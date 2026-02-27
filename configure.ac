@@ -130,7 +130,7 @@ LIBS=$LIBS_BACKUP
 
 dnl Look for clock_gettime, a DB_HAVE_CLOCK_GETTIME is set when present
 AH_TEMPLATE([DB_HAVE_CLOCK_GETTIME],[Determines if the function clock_gettime is available.])
-AC_SEARCH_LIBS([clock_gettime], [rt] , [found_clock_gettime=yes], [found_clock_gettime=no])
+AC_SEARCH_LIBS([clock_gettime], [rt pthread] , [found_clock_gettime=yes], [found_clock_gettime=no])
 if test x$found_clock_gettime = xyes; then
   AC_DEFINE(DB_HAVE_CLOCK_GETTIME)
 fi
@@ -479,25 +479,25 @@ fi
 
 AH_TEMPLATE(C_MODEM,[Define to 1 to enable internal modem support, requires SDL_net])
 AH_TEMPLATE(C_IPX,[Define to 1 to enable IPX over Internet networking, requires SDL_net])
-AC_CHECK_HEADER(SDL_net.h,have_sdl_net_h=yes,)
+AC_CHECK_HEADER(SDL2/SDL_net.h,have_sdl_net_h=yes,)
 
 if test x$host = xi386-pc-os2-emx ; then
   AC_MSG_CHECKING(for SDLNet_Init in SDL_net);
   LIBS_BACKUP=$LIBS;
-  LIBS="$LIBS -lSDL_Net";
-  AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <SDL_Net.h>]],[[
+  LIBS="$LIBS -lSDL2_Net";
+  AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <SDL2/SDL_Net.h>]],[[
 	SDLNet_Init ();
   ]])], [AC_MSG_RESULT(yes); have_sdl_net_lib=yes], AC_MSG_RESULT(no))
   LIBS=$LIBS_BACKUP
 else
-AC_CHECK_LIB(SDL_net, SDLNet_Init, have_sdl_net_lib=yes, , )
+AC_CHECK_LIB(SDL2_net, SDLNet_Init, have_sdl_net_lib=yes, , )
 fi
 if test x$have_sdl_net_lib = xyes -a x$have_sdl_net_h = xyes ; then
-   LIBS="$LIBS -lSDL_net"
+   LIBS="$LIBS -lSDL2_net"
    AC_DEFINE(C_MODEM,1)
    AC_DEFINE(C_IPX,1)
 else 
-   AC_MSG_WARN([Can't find SDL_net, internal modem and ipx disabled])
+   AC_MSG_WARN([Can't find SDL2_net, internal modem and ipx disabled])
 fi
 
 AH_TEMPLATE(C_X11_XKB,[define to 1 if you have XKBlib.h and X11 lib])
@@ -564,18 +564,18 @@ esac
 fi
 
 AH_TEMPLATE(C_SDL_SOUND,[Define to 1 to enable SDL_sound support])
-AC_CHECK_HEADER(SDL_sound.h,have_SDL_sound_h=yes,)
-AC_CHECK_LIB(SDL_sound, Sound_Init, have_SDL_sound_init=yes,,)
-AC_CHECK_LIB(SDL_sound, Sound_Seek, have_SDL_sound_seek=yes,,)
+AC_CHECK_HEADER(SDL2/SDL_sound.h,have_SDL_sound_h=yes,)
+AC_CHECK_LIB(SDL2_sound, Sound_Init, have_SDL_sound_init=yes,,)
+AC_CHECK_LIB(SDL2_sound, Sound_Seek, have_SDL_sound_seek=yes,,)
 if test x$host = xi386-pc-os2-emx -a x$have_SDL_sound_init != xyes ; then
   LIBS_BACKUP=$LIBS;
-  LIBS="$LIBS -lSDL_Sound -Zomf -lstdc++ -lmodplug -lsmpeg -lmikmod -logg -lspeex -lvorbis -lflac -lvorbisfile";
+  LIBS="$LIBS -lSDL2_Sound -Zomf -lstdc++ -lmodplug -lsmpeg -lmikmod -logg -lspeex -lvorbis -lflac -lvorbisfile";
   AC_MSG_CHECKING(for Sound_Init in SDL_Sound on OS/2);
-  AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <SDL_Sound.h>]],[[
+  AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <SDL2/SDL_Sound.h>]],[[
 	Sound_Init ();
   ]])], [AC_MSG_RESULT(yes); have_SDL_sound_init=yes], AC_MSG_RESULT(no))
   AC_MSG_CHECKING(for Sound_Seek in SDL_Sound on OS/2);
-  AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <SDL_Sound.h>]],[[
+  AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <SDL2/SDL_Sound.h>]],[[
 	Sound_Seek (NULL, 0);
   ]])], [AC_MSG_RESULT(yes); have_SDL_sound_seek=yes], AC_MSG_RESULT(no))
   if test x$have_SDL_sound_init != xyes ; then
@@ -584,13 +584,13 @@ if test x$host = xi386-pc-os2-emx -a x$have_SDL_sound_init != xyes ; then
 fi
 if test x$have_SDL_sound_h = xyes -a x$have_SDL_sound_init = xyes ; then
   if test x$have_SDL_sound_seek = xyes ; then
-    LIBS="-lSDL_sound $LIBS"
+    LIBS="-lSDL2_sound $LIBS"
     AC_DEFINE(C_SDL_SOUND,1)
    else 
-     AC_MSG_WARN([Can't find SoundSeek in libSDL_Sound, libSDL_sound support disabled])
+     AC_MSG_WARN([Can't find SoundSeek in libSDL2_Sound, libSDL2_sound support disabled])
    fi
 else
-  AC_MSG_WARN([Can't find libSDL_sound, libSDL_sound support disabled])
+  AC_MSG_WARN([Can't find libSDL2_sound, libSDL2_sound support disabled])
 fi
 
 dnl Check for mprotect. Needed for 64 bits linux 
@@ -616,7 +616,7 @@ int main(int argc,char * argv[]) {
 dnl Some target detection and actions for them
 case "$host" in
     *-*-cygwin* | *-*-mingw32*)
-       LIBS="$LIBS -lwinmm"
+       LIBS="$LIBS -lwinmm -lshlwapi"
        AC_DEFINE(C_DIRECTSERIAL, 1, [ Define to 1 if you want serial passthrough support (Win32, Posix and OS/2 only).])
        if test x$have_sdl_net_lib = xyes -a x$have_sdl_net_h = xyes ; then
          LIBS="$LIBS -lws2_32"

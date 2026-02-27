@@ -36,5 +36,6 @@ shell.h \
 support.h \
 timer.h \
 vga.h \
+voodoo.h \
 video.h
 

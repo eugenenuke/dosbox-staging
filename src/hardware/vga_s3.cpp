@@ -21,6 +21,7 @@
 #include "inout.h"
 #include "vga.h"
 #include "mem.h"
+#include "pci_bus.h"
 
 void SVGA_S3_WriteCRTC(Bitu reg,Bitu val,Bitu /*iolen*/) {
 	switch (reg) {
@@ -550,4 +551,6 @@ void SVGA_Setup_S3Trio(void) {
 		vga.vmemsize = 4096*1024;
 		vga.s3.reg_36 = 0x1a;		// 4mb fast page mode
 	}
+
+	PCI_AddSVGAS3_Device();
 }

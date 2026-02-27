@@ -33,6 +33,7 @@ AC_ARG_ENABLE(sdltest, [  --disable-sdltest       Do not try to compile and run 
     no_sdl=yes
   else
     SDL_CFLAGS=`$SDL_CONFIG $sdlconf_args --cflags`
+    SDL_CFLAGS="$SDL_CFLAGS ${SDL_CFLAGS/\/SDL/}"
     SDL_LIBS=`$SDL_CONFIG $sdlconf_args --libs`
 
     sdl_major_version=`$SDL_CONFIG $sdl_args --version | \

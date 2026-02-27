@@ -21,7 +21,9 @@
 
 #if C_IPX
 
-#include "SDL_net.h"
+#define WITHOUT_SDL
+#define NULL __null
+#include "SDL2/SDL_net.h"
 
 struct packetBuffer {
 	Bit8u buffer[1024];

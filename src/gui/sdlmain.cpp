@@ -49,6 +49,7 @@
 #include "cpu.h"
 #include "cross.h"
 #include "control.h"
+#include "glidedef.h"
 #include "render.h"
 
 #define MAPPERFILE "mapper-" VERSION ".map"
@@ -305,6 +306,7 @@ struct SDL_Block {
 		int xsensitivity;
 		int ysensitivity;
 	} mouse;
+        int dpiscale;
 	SDL_Rect updateRects[1024];
 	Bitu num_joysticks;
 #if defined (WIN32)
@@ -312,6 +314,7 @@ struct SDL_Block {
 	// Time when sdl regains focus (alt-tab) in windowed mode
 	Bit32u focus_ticks;
 #endif
+        bool focus_lost;
 	// state of alt-keys for certain special handlings
 	Bit8u laltstate;
 	Bit8u raltstate;
@@ -401,7 +404,7 @@ SDL_Surface* SDL_SetVideoMode_Wrap(int width,int height,int bpp,Bit32u flags){
 	}
 
 	//PXX
-	if ((i_flags&SDL_OPENGL) && !(flags&SDL_OPENGL) && height==i_height && width==i_width && height==480) {
+	if ((i_flags&SDL_OPENGL) && !(flags&SDL_OPENGL) && height==i_height && width==i_width /*&& height==480*/) {
 		height++;
 	}
 #endif //WIN32
@@ -445,6 +448,13 @@ SDL_Surface* SDL_SetVideoMode_Wrap(int width,int height,int bpp,Bit32u flags){
 	i_width = width;
 	i_bpp = bpp;
 	i_flags = flags;
+#endif
+#if SDL_VERSION_ATLEAST(1, 2, 60)
+        do {
+            SDL_Event e;
+            e.type = SDL_VIDEOEXPOSE;
+            SDL_PushEvent(&e);
+        } while(0);
 #endif
 #if C_OPENGL
 	if(flags & SDL_OPENGL) {
@@ -620,6 +630,10 @@ check_gotbpp:
 
 
 void GFX_ResetScreen(void) {
+	if(glide.enabled) {
+		GLIDE_ResetScreen(true);
+		return;
+	}
 	GFX_Stop();
 	if (sdl.draw.callback)
 		(sdl.draw.callback)( GFX_CallBackReset );
@@ -692,6 +706,17 @@ static SDL_Surface * GFX_SetupSurfaceScaled(Bit32u sdl_flags, Bit32u bpp) {
 		sdl.surface=SDL_SetVideoMode_Wrap(sdl.clip.w,sdl.clip.h,bpp,sdl_flags);
 	}
 
+        if (sdl.desktop.want_type == SCREEN_OPENGL) {
+            if (!sdl.dpiscale) {
+                int v[4];
+                glGetIntegerv(GL_VIEWPORT, v);
+                sdl.dpiscale = (100.f * v[2]) / sdl.clip.w;
+            }
+            float r = (sdl.desktop.fullscreen)? 1.f:(sdl.dpiscale / 100.f);
+            sdl.clip.w = (1.f * sdl.clip.w) * r;
+            sdl.clip.h = (1.f * sdl.clip.h) * r;
+        }
+
 	if (sdl.surface && sdl.surface->flags & SDL_FULLSCREEN) {
 		sdl.clip.x = (Sint16)((sdl.surface->w-sdl.clip.w)/2);
 		sdl.clip.y = (Sint16)((sdl.surface->h-sdl.clip.h)/2);
@@ -711,6 +736,10 @@ void GFX_TearDown(void) {
 		SDL_FreeSurface(sdl.blit.surface);
 		sdl.blit.surface=0;
 	}
+	if (sdl.desktop.type == SCREEN_OPENGL) {
+            glBindTexture(GL_TEXTURE_2D, 0);
+            glDisable(GL_TEXTURE_2D);
+        }
 }
 
 #if C_OPENGL
@@ -957,9 +986,9 @@ dosurface:
 #if C_OPENGL
 	case SCREEN_OPENGL:
 	{
-		if (sdl.opengl.pixel_buffer_object) {
+		if (sdl.opengl.pixel_buffer_object && sdl.opengl.buffer) {
 			glBindBufferARB(GL_PIXEL_UNPACK_BUFFER_EXT, 0);
-			if (sdl.opengl.buffer) glDeleteBuffersARB(1, &sdl.opengl.buffer);
+			glDeleteBuffersARB(1, &sdl.opengl.buffer);
 		} else if (sdl.opengl.framebuf) {
 			free(sdl.opengl.framebuf);
 		}
@@ -1166,6 +1195,7 @@ dosurface:
 	}//CASE
 	if (retFlags)
 		GFX_Start();
+        sdl.draw.flags = retFlags;
 	if (!sdl.mouse.autoenable) SDL_ShowCursor(sdl.mouse.autolock?SDL_DISABLE:SDL_ENABLE);
 	return retFlags;
 }
@@ -1249,6 +1279,7 @@ void GFX_SwitchFullScreen(void) {
 		sticky_keys(true); //restore sticky keys to default state in windowed mode.
 #endif
 	}
+	(glide.enabled)? GLIDE_ResetScreen():
 	GFX_ResetScreen();
 }
 
@@ -2031,10 +2062,21 @@ void GFX_LosingFocus(void) {
 	sdl.laltstate=SDL_KEYUP;
 	sdl.raltstate=SDL_KEYUP;
 	MAPPER_LosingFocus();
+        sdl.focus_lost = true;
+}
+static void GFX_RegainFocus(void) {
+    if (sdl.focus_lost) {
+        sdl.focus_lost = false;
+        SetPriority(sdl.priority.focus);
+        CPU_Disable_SkipAutoAdjust();
+    }
 }
 
 bool GFX_IsFullscreen(void) {
 	return sdl.desktop.fullscreen;
+}
+bool GFX_IsOpenGL(void) {
+	return (sdl.desktop.type == SCREEN_OPENGL);
 }
 
 #if defined(MACOSX)
@@ -2108,10 +2150,13 @@ void GFX_Events() {
 				} else {
 					if (sdl.mouse.locked) {
 #ifdef WIN32
+#if SDL_VERSION_ATLEAST(1, 2, 56)
+#else
 						if (sdl.desktop.fullscreen) {
 							VGA_KillDrawing();
 							GFX_ForceFullscreenExit();
 						}
+#endif /* sdl12-compat */
 #endif
 						GFX_CaptureMouse();
 					}
@@ -2184,7 +2229,8 @@ void GFX_Events() {
 			throw(0);
 			break;
 		case SDL_VIDEOEXPOSE:
-			if (sdl.draw.callback) sdl.draw.callback( GFX_CallBackRedraw );
+                        GFX_RegainFocus();
+			if ((sdl.draw.callback) && (!glide.enabled)) sdl.draw.callback( GFX_CallBackRedraw );
 			break;
 #ifdef WIN32
 		case SDL_KEYDOWN:
@@ -2507,12 +2553,15 @@ static void erasemapperfile() {
 
 void Disable_OS_Scaling() {
 #if defined (WIN32)
+#if SDL_VERSION_ATLEAST(1, 2, 56)
+#else
 	typedef BOOL (*function_set_dpi_pointer)();
 	function_set_dpi_pointer function_set_dpi;
 	function_set_dpi = (function_set_dpi_pointer) GetProcAddress(LoadLibrary("user32.dll"), "SetProcessDPIAware");
 	if (function_set_dpi) {
 		function_set_dpi();
 	}
+#endif /* sdl12-compat */
 #endif
 }
 
@@ -2624,6 +2673,10 @@ int main(int argc, char* argv[]) {
 	 */
 	putenv(const_cast<char*>("SDL_DISABLE_LOCK_KEYS=1"));
 #endif
+#if defined (MACOSX) && SDL_VERSION_ATLEAST(1, 2, 56)
+        putenv(const_cast<char*>("SDL12COMPAT_HIGHDPI=0"));
+        putenv(const_cast<char*>("SDL_RENDER_DRIVER=opengl"));
+#endif
 	// Don't init timers, GetTicks seems to work fine and they can use a fair amount of power (Macs again)
 	// Please report problems with audio and other things.
 	if ( SDL_Init( SDL_INIT_AUDIO|SDL_INIT_VIDEO | /*SDL_INIT_TIMER |*/ SDL_INIT_CDROM
@@ -2669,6 +2722,10 @@ int main(int argc, char* argv[]) {
 			if (strcmp(sdl_drv_name,"windib")==0) LOG_MSG("SDL_Init: Starting up with SDL windib video driver.\n          Try to update your video card and directx drivers!");
 		}
 #endif
+        SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE, 8);
+	SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
+        SDL_GL_SetAttribute(SDL_GL_BUFFER_SIZE, 32);
+	glide.fullscreen = &sdl.desktop.fullscreen;
 	sdl.num_joysticks=SDL_NumJoysticks();
 
 	/* Parse configuration files */
@@ -2800,3 +2857,12 @@ void GFX_GetSize(int &width, int &height, bool &fullscreen) {
 	height = sdl.draw.height;
 	fullscreen = sdl.desktop.fullscreen;
 }
+
+Bitu VOODOO_ScaleWidth();
+Bitu GFX_ScaleWidth(float &r) {
+        Bitu gfx_w = VOODOO_ScaleWidth();
+        r = (sdl.desktop.fullscreen || !sdl.dpiscale)? 1.f:(sdl.dpiscale / 100.f);
+        gfx_w = (1.f * gfx_w) * r;
+        return (gfx_w)? gfx_w:sdl.clip.w;
+}
+
