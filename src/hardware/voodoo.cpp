@@ -32,6 +32,9 @@
 #include "pci_bus.h"
 #include "voodoo_interface.h"
 
+void PCI_AddSST_Device(Bitu type);
+void PCI_RemoveSST_Device(void);
+
 
 class VOODOO;
 static VOODOO* voodoo_dev;

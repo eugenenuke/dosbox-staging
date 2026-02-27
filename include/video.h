@@ -69,6 +69,19 @@ void GFX_EndUpdate( const Bit16u *changedLines );
 void GFX_GetSize(int &width, int &height, bool &fullscreen);
 void GFX_LosingFocus(void);
 
+bool GFX_IsFullscreen(void);
+bool GFX_IsOpenGL(void);
+void GFX_SwitchLazyFullscreen(bool lazy);
+bool GFX_LazyFullscreenRequested(void);
+void GFX_SwitchFullscreenNoReset(void);
+void GFX_RestoreMode(void);
+void GFX_UpdateSDLCaptureState(void);
+void GFX_TearDown(void);
+Bitu GFX_ScaleWidth(float &r);
+
+struct SDL_Surface;
+SDL_Surface* SDL_SetVideoMode_Wrap(int width, int height, int bpp, Bit32u flags);
+
 #if defined (REDUCE_JOYSTICK_POLLING)
 void MAPPER_UpdateJoysticks(void);
 #endif

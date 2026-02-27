@@ -1406,6 +1406,12 @@ void swap_fpslimit(const Bitu fps) {
     nexttick += (1000 / fps);
 }
 
+struct SDL_Block {
+	SDL_Window *window;
+	// dummy, only window is used here
+};
+extern SDL_Block sdl;
+
 void voodoo_ogl_swap_buffer() {
 	if (GFX_LazyFullscreenRequested()) {
 		v->ogl_dimchange = true;
@@ -1414,7 +1420,7 @@ void voodoo_ogl_swap_buffer() {
 	VOGL_ClearBeginMode();
 
         annotate_stat();
-	SDL_GL_SwapBuffers();
+	SDL_GL_SwapWindow(sdl.window);
         Bitu fps = VOODOO_FpsLimit();
         if (fps)
             swap_fpslimit(fps);
@@ -1830,12 +1836,12 @@ void voodoo_ogl_reset_videomode(void) {
 		ogl_surface = NULL;
 	}
 
-	Uint32 sdl_flags = SDL_OPENGL;
+	Uint32 sdl_flags = SDL_WINDOW_OPENGL;
 
 	if (GFX_LazyFullscreenRequested()) GFX_SwitchFullscreenNoReset();
 
 	if (GFX_IsFullscreen()) {
-		sdl_flags |= SDL_FULLSCREEN;
+		sdl_flags |= SDL_WINDOW_FULLSCREEN;
 	} else {
 		if (full_sdl_restart) {
 			SDL_QuitSubSystem(SDL_INIT_VIDEO);
@@ -1845,7 +1851,7 @@ void voodoo_ogl_reset_videomode(void) {
 	}
 
         ogl_surface = SDL_SetVideoMode_Wrap(win_w, win_h, 32, sdl_flags);
-	if ((ogl_surface != NULL) && (sdl_flags & SDL_FULLSCREEN)) SDL_Delay(500);
+	if ((ogl_surface != NULL) && (sdl_flags & SDL_WINDOW_FULLSCREEN)) SDL_Delay(500);
 
 	if (ogl_surface == NULL) {
                 full_sdl_restart = true;
@@ -1862,8 +1868,8 @@ void voodoo_ogl_reset_videomode(void) {
 				has_stencil = false;
 				SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 0);
 				if (SDL_SetVideoMode_Wrap(win_w, win_h, 32, sdl_flags) == 0) {
-					if (sdl_flags & SDL_FULLSCREEN) {
-						sdl_flags &= ~(SDL_FULLSCREEN);
+					if (sdl_flags & SDL_WINDOW_FULLSCREEN) {
+						sdl_flags &= ~(SDL_WINDOW_FULLSCREEN);
 						if (SDL_SetVideoMode_Wrap(win_w, win_h, 32, sdl_flags) == 0) {
 							E_Exit("VOODOO: opengl init error");
 						}
@@ -1933,7 +1939,7 @@ void voodoo_ogl_reset_videomode(void) {
             LOG_MSG("VOODOO: OpenGL: framebuffer sRGB enabled");
         }
 
-	LOG_MSG("VOODOO: OpenGL: mode set, resolution %d:%d %s", v->fbi.width, v->fbi.height, (sdl_flags & SDL_FULLSCREEN) ? "(fullscreen)" : "");
+	LOG_MSG("VOODOO: OpenGL: mode set, resolution %d:%d %s", v->fbi.width, v->fbi.height, (sdl_flags & SDL_WINDOW_FULLSCREEN) ? "(fullscreen)" : "");
         if (v->fbi.width != win_w)
             LOG_MSG("VOODOO: OpenGL: scaled at %d:%d", win_w, win_h);
 }
@@ -2046,7 +2052,7 @@ void voodoo_ogl_leave(bool leavemode) {
 			ogl_surface = NULL;
 		}
                 SDL_SetVideoMode_Wrap(v->fbi.width, v->fbi.height, 0,
-                    GFX_IsFullscreen()? SDL_FULLSCREEN:0);
+                    GFX_IsFullscreen()? SDL_WINDOW_FULLSCREEN:0);
 		GFX_RestoreMode();
 	}
 }

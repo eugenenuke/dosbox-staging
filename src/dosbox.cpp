@@ -76,7 +76,10 @@ void HARDWARE_Init(Section*);
 
 #if defined(PCI_FUNCTIONALITY_ENABLED)
 void PCI_Init(Section*);
+void VOODOO_Init(Section*);
 #endif
+
+void GLIDE_Init(Section*);
 
 
 void KEYBOARD_Init(Section*);	//TODO This should setup INT 16 too but ok ;)
@@ -546,7 +549,10 @@ void DOSBOX_Init(void) {
 
 #if defined(PCI_FUNCTIONALITY_ENABLED)
 	secprop=control->AddSection_prop("pci",&PCI_Init,false); //PCI bus
+	secprop->AddInitFunction(&VOODOO_Init,true);
 #endif
+
+	secprop=control->AddSection_prop("glide",&GLIDE_Init,true);
 
 
 	secprop=control->AddSection_prop("mixer",&MIXER_Init);

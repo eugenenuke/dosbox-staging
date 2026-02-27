@@ -25,7 +25,8 @@
 #include "vga.h"
 #include "dos_inc.h"		/* for Drives[] */
 #include "control.h"
-#include "../dos/drives.h"
+#include "drives.h"
+#include "shell.h"
 
 #include <iomanip>
 #include <sstream>
@@ -33,6 +34,11 @@ using namespace std;
 
 #include "SDL.h"
 #include "SDL_syswm.h"
+
+struct SDL_Block {
+	SDL_Window *window;
+};
+extern SDL_Block sdl;
 
 #if defined (WIN32)
 #include <windows.h>
@@ -162,7 +168,7 @@ static void write_gl(Bitu port,Bitu val,Bitu iolen)
     }
 
     // Process function parameters (80 bytes)
-    MEM_BlockRead32(PhysMake(glsegment,0), param, 80);
+    MEM_BlockRead(PhysMake(glsegment,0), param, 80);
     process_msg(val);
 
 //  LOG_MSG("Glide:Function %s executed OK", grTable[val].name);
@@ -173,28 +179,15 @@ static void statWMInfo(void)
     // Get hwnd information
     SDL_SysWMinfo wmi;
     SDL_VERSION(&wmi.version);
-    if (SDLSignValid(0)) {
-        void *(*GetWindowSDL)(void) = (void *(*)(void))
-            SDL_GL_GetProcAddress("SDL12COMPAT_GetWindow");
-        if (GetWindowSDL) {
-            hwnd = (HostPt)GetWindowSDL();
-            return;
-        }
-    }
-    if(SDL_GetWMInfo(&wmi)) {
+    if(SDL_GetWindowWMInfo(sdl.window, &wmi)) {
 #if defined (WIN32)
-	hwnd = (HostPt)wmi.window;
+	hwnd = (HostPt)wmi.info.win.window;
 #elif defined (MACOSX)
-        struct nswm {
-            SDL_version version;
-            void *nsWindowPtr;
-        } *nwp = (struct nswm *)&wmi;
-        hwnd = (HostPt)nwp->nsWindowPtr;
+        hwnd = (HostPt)wmi.info.cocoa.window;
 #elif defined (SDL_VIDEO_DRIVER_X11)
 	hwnd = (HostPt)wmi.info.x11.window;
 #else
-        hwnd = nullptr;
-        LOG_MSG("SDL:Warn nullptr native window");
+        hwnd = 0;
 #endif
     } else {
 	LOG_MSG("SDL:Error retrieving window information");
@@ -583,7 +576,7 @@ void GLIDE_ResetScreen(bool update)
 	// and resize when mapper and/or GUI finish
 	  update)) {
 	    SDL_SetVideoMode_Wrap(glide.width,glide.height,0,
-		(glide.fullscreen[0]?SDL_FULLSCREEN:0)|SDL_ANYFORMAT|SDL_SWSURFACE);
+		(glide.fullscreen[0]?SDL_WINDOW_FULLSCREEN:0));
 	}
 }
 
@@ -703,22 +696,23 @@ static void process_msg(Bitu value)
     case _grAADrawLine8:
 	// void grAADrawLine(GrVertex *va, GrVertex *vb)
 	FP.grFunction2p = (pfunc2p)fn_pt[i];
-	MEM_BlockRead32(param[1], &vertex[0], sizeof(GrVertex));
-	MEM_BlockRead32(param[2], &vertex[1], sizeof(GrVertex));
+	MEM_BlockRead(param[1], &vertex[0], sizeof(GrVertex));
+
+	MEM_BlockRead(param[2], &vertex[1], sizeof(GrVertex));
 	FP.grFunction2p(&vertex[0], &vertex[1]);
 	break;
     case _grAADrawPoint4:
 	// void grAADrawPoint(GrVertex *p)
 	FP.grFunction1p = (pfunc1p)fn_pt[i];
-	MEM_BlockRead32(param[1], &vertex[0], sizeof(GrVertex));
+	MEM_BlockRead(param[1], &vertex[0], sizeof(GrVertex));
+
 	FP.grFunction1p(&vertex[0]);
 	break;
     case _grAADrawPolygon12:
 	// void grAADrawPolygon(int nVerts, const int ilist[], const GrVertex vlist[])
 	FP.grFunction1i2p = (pfunc1i2p)fn_pt[i];
 	i = sizeof(FxI32)*param[1];
-	MEM_BlockRead32(param[2], ilist, i);
-
+	MEM_BlockRead(param[2], ilist, i);
 	// Find the number of vertices (?)
 	k = 0;
 	for(j = 0; j < param[1]; j++) {
@@ -727,22 +721,23 @@ static void process_msg(Bitu value)
 	}
 	k++;
 
-	MEM_BlockRead32(param[3], ilist+i, sizeof(GrVertex)*k);
+	MEM_BlockRead(param[3], ilist+i, sizeof(GrVertex)*k);
 	FP.grFunction1i2p(param[1], ilist, ilist+i);
 	break;
     case _grAADrawPolygonVertexList8:
 	// void grAADrawPolygonVertexList(int nVerts, const GrVertex vlist[])
 	FP.grFunction1i1p = (pfunc1i1p)fn_pt[i];
-	MEM_BlockRead32(param[2], texmem, sizeof(GrVertex)*param[1]);
+	MEM_BlockRead(param[2], texmem, sizeof(GrVertex)*param[1]);
 	FP.grFunction1i1p(param[1], texmem);
 	break;
     case _grAADrawTriangle24:
 	// void grAADrawTriangle(GrVertex *a, GrVertex *b, GrVertex *c,
 	//	FxBool antialiasAB, FxBool antialiasBC, FxBool antialiasCA)
 	FP.grFunction3p3i = (pfunc3p3i)fn_pt[i];
-	MEM_BlockRead32(param[1], &vertex[0], sizeof(GrVertex));
-	MEM_BlockRead32(param[2], &vertex[1], sizeof(GrVertex));
-	MEM_BlockRead32(param[3], &vertex[2], sizeof(GrVertex));
+	MEM_BlockRead(param[1], &vertex[0], sizeof(GrVertex));
+
+	MEM_BlockRead(param[2], &vertex[1], sizeof(GrVertex));
+	MEM_BlockRead(param[3], &vertex[2], sizeof(GrVertex));
 	FP.grFunction3p3i(&vertex[0], &vertex[1], &vertex[2], param[4], param[5], param[6]);
 	break;
     case _grAlphaBlendFunction16:
@@ -890,16 +885,16 @@ static void process_msg(Bitu value)
     case _grDrawLine8:
 	// void grDrawLine(const GrVertex *a, const GrVertex *b)
 	FP.grFunction2p = (pfunc2p)fn_pt[i];
-	MEM_BlockRead32(param[1], &vertex[0], sizeof(GrVertex));
-	MEM_BlockRead32(param[2], &vertex[1], sizeof(GrVertex));
+	MEM_BlockRead(param[1], &vertex[0], sizeof(GrVertex));
+
+	MEM_BlockRead(param[2], &vertex[1], sizeof(GrVertex));
 	FP.grFunction2p(&vertex[0], &vertex[1]);
 	break;
     case _grDrawPlanarPolygon12:
 	// void grDrawPlanarPolygon(int nVerts, int ilist[], const GrVertex vlist[])
 	FP.grFunction1i2p = (pfunc1i2p)fn_pt[i];
 	i = sizeof(FxI32)*param[1];
-	MEM_BlockRead32(param[2], ilist, i);
-
+	MEM_BlockRead(param[2], ilist, i);
 	// Find the number of vertices (?)
 	k = 0;
 	for(j = 0; j < param[1]; j++) {
@@ -908,27 +903,27 @@ static void process_msg(Bitu value)
 	}
 	k++;
 
-	MEM_BlockRead32(param[3], ilist+i, sizeof(GrVertex)*k);
+	MEM_BlockRead(param[3], ilist+i, sizeof(GrVertex)*k);
 	FP.grFunction1i2p(param[1], ilist, ilist+i);
 	break;
     case _grDrawPlanarPolygonVertexList8:
 	// void grDrawPlanarPolygonVertexList(int nVertices, const GrVertex vlist[])
 	FP.grFunction1i1p = (pfunc1i1p)fn_pt[i];
-	MEM_BlockRead32(param[2], texmem, sizeof(GrVertex)*param[1]);
+	MEM_BlockRead(param[2], texmem, sizeof(GrVertex)*param[1]);
 	FP.grFunction1i1p(param[1], texmem);
 	break;
     case _grDrawPoint4:
 	// void grDrawPoint(const GrVertex *a)
 	FP.grFunction1p = (pfunc1p)fn_pt[i];
-	MEM_BlockRead32(param[1], &vertex[0], sizeof(GrVertex));
+	MEM_BlockRead(param[1], &vertex[0], sizeof(GrVertex));
+
 	FP.grFunction1p(&vertex[0]);
 	break;
     case _grDrawPolygon12:
 	// void grDrawPolygon(int nVerts, int ilist[], const GrVertex vlist[])
 	FP.grFunction1i2p = (pfunc1i2p)fn_pt[i];
 	i = sizeof(FxI32)*param[1];
-	MEM_BlockRead32(param[2], ilist, i);
-
+	MEM_BlockRead(param[2], ilist, i);
 	// Find the number of vertices (?)
 	k = 0;
 	for(j = 0; j < param[1]; j++) {
@@ -937,21 +932,22 @@ static void process_msg(Bitu value)
 	}
 	k++;
 
-	MEM_BlockRead32(param[3], ilist+i, sizeof(GrVertex)*k);
+	MEM_BlockRead(param[3], ilist+i, sizeof(GrVertex)*k);
 	FP.grFunction1i2p(param[1], ilist, ilist+i);
 	break;
     case _grDrawPolygonVertexList8:
 	// void grDrawPolygonVertexList(int nVerts, const GrVertex vlist[])
 	FP.grFunction1i1p = (pfunc1i1p)fn_pt[i];
-	MEM_BlockRead32(param[2], texmem, sizeof(GrVertex)*param[1]);
+	MEM_BlockRead(param[2], texmem, sizeof(GrVertex)*param[1]);
 	FP.grFunction1i1p(param[1], texmem);
 	break;
     case _grDrawTriangle12:
 	// void grDrawTriangle(const GrVertex *a, const GrVertex *b, const GrVertex *c)
 	FP.grFunction3p = (pfunc3p)fn_pt[i];
-	MEM_BlockRead32(param[1], &vertex[0], sizeof(GrVertex));
-	MEM_BlockRead32(param[2], &vertex[1], sizeof(GrVertex));
-	MEM_BlockRead32(param[3], &vertex[2], sizeof(GrVertex));
+	MEM_BlockRead(param[1], &vertex[0], sizeof(GrVertex));
+
+	MEM_BlockRead(param[2], &vertex[1], sizeof(GrVertex));
+	MEM_BlockRead(param[3], &vertex[2], sizeof(GrVertex));
 	FP.grFunction3p(&vertex[0], &vertex[1], &vertex[2]);
 	break;
 /*
@@ -974,7 +970,7 @@ static void process_msg(Bitu value)
     case _grFogTable4:
 	// void grFogTable(const GrFog_t grTable[GR_FOG_TABLE_SIZE])
 	FP.grFunction1p = (pfunc1p)fn_pt[i];
-	MEM_BlockRead32(param[1], texmem, sizeof(GrFog_t)*GR_FOG_TABLE_SIZE);
+	MEM_BlockRead(param[1], texmem, sizeof(GrFog_t)*GR_FOG_TABLE_SIZE);
 	FP.grFunction1p(texmem);
 	break;
     case _grGammaCorrectionValue4:
@@ -985,9 +981,10 @@ static void process_msg(Bitu value)
     case _grGlideGetState4:
 	// void grGlideGetState(GrState *state)
 	FP.grFunction1p = (pfunc1p)fn_pt[i];
-	MEM_BlockRead32(param[1], texmem, sizeof(GrState));
+	MEM_BlockRead(param[1], texmem, sizeof(GrState));
 	FP.grFunction1p(texmem);
-	MEM_BlockWrite32(param[1], texmem, sizeof(GrState));
+	MEM_BlockWrite(param[1], texmem, sizeof(GrState));
+
 	break;
     case _grGlideGetVersion4:
 	// void grGlideGetVersion(char version[80])
@@ -1021,9 +1018,10 @@ static void process_msg(Bitu value)
     case _grGlideSetState4:
 	// void grGlideSetState(const GrState *state)
 	FP.grFunction1p = (pfunc1p)fn_pt[i];
-	MEM_BlockRead32(param[1], texmem, sizeof(GrState));
+	MEM_BlockRead(param[1], texmem, sizeof(GrState));
 	FP.grFunction1p(texmem);
-	MEM_BlockWrite32(param[1], texmem, sizeof(GrState));
+	MEM_BlockWrite(param[1], texmem, sizeof(GrState));
+
 	break;
     case _grGlideShamelessPlug4:
 	// void grGlideShamelessPlug(const FxBool on)
@@ -1090,7 +1088,7 @@ static void process_msg(Bitu value)
 	//if (buffer < 2) buffer = buffer ^ b_swap;
 
 	// Read parameters
-	MEM_BlockRead32(param[6], &dblfbinfo, sizeof(DBGrLfbInfo_t));
+	MEM_BlockRead(param[6], &dblfbinfo, sizeof(DBGrLfbInfo_t));
 	lfbinfo.size = sizeof(GrLfbInfo_t);
 	lfbinfo.origin = dblfbinfo.origin;
 	lfbinfo.lfbPtr = texmem;
@@ -1108,7 +1106,8 @@ static void process_msg(Bitu value)
 		    dblfbinfo.writeMode = lfbinfo.writeMode;
 		    dblfbinfo.strideInBytes = lfbinfo.strideInBytes;
 		    dblfbinfo.lfbPtr = glide.lfb_pagehandler->GetLinPt(buffer);
-		    MEM_BlockWrite32(param[6], &dblfbinfo, sizeof(DBGrLfbInfo_t));
+		    MEM_BlockWrite(param[6], &dblfbinfo, sizeof(DBGrLfbInfo_t));
+
 		} else {
 		    LOG_MSG("Glide:LFB Lock failed!");
 		    //k = FXFALSE;	// Lock failed ?
@@ -1126,7 +1125,8 @@ static void process_msg(Bitu value)
 
 		//if(!(param[1]&GR_LFB_WRITE_ONLY)) SDL_memset(texmem, 0, 1600*1200*4);	// Clear memory on read-lock
 
-		MEM_BlockWrite32(param[6], &dblfbinfo, sizeof(DBGrLfbInfo_t));
+		MEM_BlockWrite(param[6], &dblfbinfo, sizeof(DBGrLfbInfo_t));
+
 	}
 
 	// Set LFB address for page handler to read from/write to
@@ -1263,32 +1263,33 @@ static void process_msg(Bitu value)
     case _grSstPerfStats4:
 	// void grSstPerfStats(GrSstPerfStats_t *pStats)
 	FP.grFunction1p = (pfunc1p)fn_pt[i];
-	MEM_BlockRead32(param[1], texmem, sizeof(GrSstPerfStats_t));
+	MEM_BlockRead(param[1], texmem, sizeof(GrSstPerfStats_t));
 	FP.grFunction1p(texmem);
-	MEM_BlockWrite32(param[1], texmem, sizeof(GrSstPerfStats_t));
+	MEM_BlockWrite(param[1], texmem, sizeof(GrSstPerfStats_t));
+
 	break;
     case _grSstQueryBoards4:
 	// FxBool grSstQueryBoards(GrHwConfiguration *hwConfig)
 	FP.grRFunction1p = (prfunc1p)fn_pt[i];
-	MEM_BlockRead32(param[1], texmem, sizeof(GrHwConfiguration));
+	MEM_BlockRead(param[1], texmem, sizeof(GrHwConfiguration));
 	if(ret == 0) {
 	    LOG_MSG("Glide:Invalid return value handle for %s!", grTable[i].name);
 	    return;
 	}
 	mem_writed(ret, FP.grRFunction1p(texmem));
-	MEM_BlockWrite32(param[1], texmem, sizeof(GrHwConfiguration));
+	MEM_BlockWrite(param[1], texmem, sizeof(GrHwConfiguration));
 	ret_value = G_OK;
 	break;
     case _grSstQueryHardware4:
 	// FxBool grSstQueryHardware(GrHwConfiguration *hwConfig)
 	FP.grRFunction1p = (prfunc1p)fn_pt[i];
-	MEM_BlockRead32(param[1], texmem, sizeof(GrHwConfiguration));
+	MEM_BlockRead(param[1], texmem, sizeof(GrHwConfiguration));
 	if(ret == 0) {
 	    LOG_MSG("Glide:Invalid return value handle for %s!", grTable[i].name);
 	    return;
 	}
 	mem_writed(ret, FP.grRFunction1p(texmem));
-	MEM_BlockWrite32(param[1], texmem, sizeof(GrHwConfiguration));
+	MEM_BlockWrite(param[1], texmem, sizeof(GrHwConfiguration));
 	ret_value = G_OK;
 	break;
     case _grSstResetPerfStats0:
@@ -1488,7 +1489,7 @@ static void process_msg(Bitu value)
 	    return;
 	}
 
-	MEM_BlockRead32(param[4], &dbtexinfo, sizeof(DBGrTexInfo));
+	MEM_BlockRead(param[4], &dbtexinfo, sizeof(DBGrTexInfo));
 
 	texinfo.smallLod = dbtexinfo.smallLod;
 	texinfo.largeLod = dbtexinfo.largeLod;
@@ -1560,9 +1561,9 @@ static void process_msg(Bitu value)
 	FP.grFunction2i1p = (pfunc2i1p)fn_pt[i];
 
 	if(param[2] == GR_TEXTABLE_PALETTE) {
-	    MEM_BlockRead32(param[3], texmem, sizeof(GuTexPalette));
+	    MEM_BlockRead(param[3], texmem, sizeof(GuTexPalette));
 	} else { // GR_TEXTABLE_NCC0 or GR_TEXTABLE_NCC1
-	    MEM_BlockRead32(param[3], texmem, sizeof(GuNccTable));
+	    MEM_BlockRead(param[3], texmem, sizeof(GuNccTable));
 	}
 
 	FP.grFunction2i1p(param[1], param[2], texmem);
@@ -1572,7 +1573,7 @@ static void process_msg(Bitu value)
 	FP.grFunction2i1p2i = (pfunc2i1p2i)fn_pt[i];
 
 	if(param[2] == GR_TEXTABLE_PALETTE) {
-	    MEM_BlockRead32(param[3], texmem, sizeof(GuTexPalette));
+	    MEM_BlockRead(param[3], texmem, sizeof(GuTexPalette));
 	    FP.grFunction2i1p2i(param[1], param[2], texmem, param[4], param[5]);
 	} else { // GR_TEXTABLE_NCC0 or GR_TEXTABLE_NCC1
 	    LOG_MSG("Glide:Downloading partial NCC tables is not supported!");
@@ -1650,7 +1651,7 @@ static void process_msg(Bitu value)
 	FP.grFunction3i1p = (pfunc3i1p)fn_pt[i];
 
 	// Copy the data from DB struct
-	MEM_BlockRead32(param[4], &dbtexinfo, sizeof(DBGrTexInfo));
+	MEM_BlockRead(param[4], &dbtexinfo, sizeof(DBGrTexInfo));
 
 	texinfo.smallLod = dbtexinfo.smallLod;
 	texinfo.largeLod = dbtexinfo.largeLod;
@@ -1669,7 +1670,7 @@ static void process_msg(Bitu value)
 	}
 
 	// Copy the data from DB struct
-	MEM_BlockRead32(param[2], &dbtexinfo, sizeof(DBGrTexInfo));
+	MEM_BlockRead(param[2], &dbtexinfo, sizeof(DBGrTexInfo));
 
 	texinfo.smallLod = dbtexinfo.smallLod;
 	texinfo.largeLod = dbtexinfo.largeLod;
@@ -1683,11 +1684,11 @@ static void process_msg(Bitu value)
     case _grTriStats8:
 	// void grTriStats(FxU32 *trisProcessed, FxU32 *trisDrawn)
 	FP.grFunction2p = (pfunc2p)fn_pt[i];
-	MEM_BlockRead32(param[1], ilist, sizeof(FxU32));
-	MEM_BlockRead32(param[2], ilist + 1, sizeof(FxU32));
+	MEM_BlockRead(param[1], ilist, sizeof(FxU32));
+	MEM_BlockRead(param[2], ilist + 1, sizeof(FxU32));
 	FP.grFunction2p(ilist, ilist + 1);
-	MEM_BlockWrite32(param[1], ilist, sizeof(FxU32));
-	MEM_BlockWrite32(param[2], ilist + 1, sizeof(FxU32));
+	MEM_BlockWrite(param[1], ilist, sizeof(FxU32));
+	MEM_BlockWrite(param[2], ilist + 1, sizeof(FxU32));
 	break;
     case _gu3dfGetInfo8:
 	// FxBool gu3dfGetInfo(const char *filename, Gu3dfInfo *info)
@@ -1706,7 +1707,7 @@ static void process_msg(Bitu value)
 
 	// Copy the data back to DB struct if successful
 	if(mem_readd(ret)) {
-	    MEM_BlockRead32(param[2], &dbguinfo, sizeof(DBGu3dfInfo));
+	    MEM_BlockRead(param[2], &dbguinfo, sizeof(DBGu3dfInfo));
 	    dbguinfo.header.width = (Bit32u)guinfo.header.width;
 	    dbguinfo.header.height = (Bit32u)guinfo.header.height;
 	    dbguinfo.header.small_lod = (Bit32s)guinfo.header.small_lod;
@@ -1714,7 +1715,7 @@ static void process_msg(Bitu value)
 	    dbguinfo.header.aspect_ratio = (Bit32s)guinfo.header.aspect_ratio;
 	    dbguinfo.header.format = (Bit32s)guinfo.header.format;
 	    dbguinfo.mem_required = (Bit32u)guinfo.mem_required;
-	    MEM_BlockWrite32(param[2], &dbguinfo, sizeof(DBGu3dfInfo));
+	    MEM_BlockWrite(param[2], &dbguinfo, sizeof(DBGu3dfInfo));
 	}
 
 	ret_value = G_OK;
@@ -1729,7 +1730,7 @@ static void process_msg(Bitu value)
 
 	// Although glide ref specifies *info should be filled by gu3dfGetInfo before calling gu3dfLoad,
 	// OpenGlide will re-read the header in gu3dfLoad as well
-	MEM_BlockRead32(param[2], &dbguinfo, sizeof(DBGu3dfInfo));
+	MEM_BlockRead(param[2], &dbguinfo, sizeof(DBGu3dfInfo));
 	MEM_StrCopy(param[1], filename, 512);
 
 #if LOG_GLIDE
@@ -1747,15 +1748,16 @@ static void process_msg(Bitu value)
 	    MEM_BlockWrite(dbguinfo.data, guinfo.data, guinfo.mem_required);
 	}
 
-	MEM_BlockWrite32(param[2], &dbguinfo, sizeof(DBGu3dfInfo));
+	MEM_BlockWrite(param[2], &dbguinfo, sizeof(DBGu3dfInfo));
 	ret_value = G_OK;
 	break;
     case _guAADrawTriangleWithClip12:
 	// void guAADrawTriangleWithClip(const GrVertex *va, const GrVertex *vb, const GrVertex *vc)
 	FP.grFunction3p = (pfunc3p)fn_pt[i];
-	MEM_BlockRead32(param[1], &vertex[0], sizeof(GrVertex));
-	MEM_BlockRead32(param[2], &vertex[1], sizeof(GrVertex));
-	MEM_BlockRead32(param[3], &vertex[2], sizeof(GrVertex));
+	MEM_BlockRead(param[1], &vertex[0], sizeof(GrVertex));
+
+	MEM_BlockRead(param[2], &vertex[1], sizeof(GrVertex));
+	MEM_BlockRead(param[3], &vertex[2], sizeof(GrVertex));
 	FP.grFunction3p(&vertex[0], &vertex[1], &vertex[2]);
 	break;
     case _guAlphaSource4:
@@ -1771,15 +1773,16 @@ static void process_msg(Bitu value)
     case _guDrawPolygonVertexListWithClip8:
 	// void guDrawPolygonVertexListWithClip(int nverts, const GrVertex vlist[])
 	FP.grFunction1i1p = (pfunc1i1p)fn_pt[i];
-	MEM_BlockRead32(param[2], texmem, sizeof(GrVertex)*param[1]);
+	MEM_BlockRead(param[2], texmem, sizeof(GrVertex)*param[1]);
 	FP.grFunction1i1p(param[1], texmem);
 	break;
     case _guDrawTriangleWithClip12:
 	// void guDrawTriangleWithClip(const GrVertex *va, const GrVertex *vb, const GrVertex *vc)
 	FP.grFunction3p = (pfunc3p)fn_pt[i];
-	MEM_BlockRead32(param[1], &vertex[0], sizeof(GrVertex));
-	MEM_BlockRead32(param[2], &vertex[1], sizeof(GrVertex));
-	MEM_BlockRead32(param[3], &vertex[2], sizeof(GrVertex));
+	MEM_BlockRead(param[1], &vertex[0], sizeof(GrVertex));
+
+	MEM_BlockRead(param[2], &vertex[1], sizeof(GrVertex));
+	MEM_BlockRead(param[3], &vertex[2], sizeof(GrVertex));
 	FP.grFunction3p(&vertex[0], &vertex[1], &vertex[2]);
 	break;
 /*
@@ -1803,19 +1806,19 @@ static void process_msg(Bitu value)
 	// void guFogGenerateExp2(GrFog_t fogTable[GR_FOG_TABLE_SIZE], float density)
 	FP.grFunction1p1f = (pfunc1p1f)fn_pt[i];
 	FP.grFunction1p1f(texmem, int_to_float(param[2]));
-	MEM_BlockWrite32(param[1], texmem, GR_FOG_TABLE_SIZE*sizeof(GrFog_t));
+	MEM_BlockWrite(param[1], texmem, GR_FOG_TABLE_SIZE*sizeof(GrFog_t));
 	break;
     case _guFogGenerateExp8:
 	// void guFogGenerateExp(GrFog_t fogTable[GR_FOG_TABLE_SIZE], float density)
 	FP.grFunction1p1f = (pfunc1p1f)fn_pt[i];
 	FP.grFunction1p1f(texmem, int_to_float(param[2]));
-	MEM_BlockWrite32(param[1], texmem, GR_FOG_TABLE_SIZE*sizeof(GrFog_t));
+	MEM_BlockWrite(param[1], texmem, GR_FOG_TABLE_SIZE*sizeof(GrFog_t));
 	break;
     case _guFogGenerateLinear12:
 	// void guFogGenerateLinear(GrFog_t fogTable[GR_FOG_TABLE_SIZE], float nearW, float farW)
 	FP.grFunction1p2f = (pfunc1p2f)fn_pt[i];
 	FP.grFunction1p2f(texmem, int_to_float(param[2]), int_to_float(param[3]));
-	MEM_BlockWrite32(param[1], texmem, GR_FOG_TABLE_SIZE*sizeof(GrFog_t));
+	MEM_BlockWrite(param[1], texmem, GR_FOG_TABLE_SIZE*sizeof(GrFog_t));
 	break;
     case _guFogTableIndexToW4: {
 	// float guFogTableIndexToW(int i)
@@ -1928,7 +1931,7 @@ static void process_msg(Bitu value)
 	    texsize = FP.grRFunction1i1p(mipmap->odd_even_mask, &texinfo);
 
 	    MEM_BlockRead(param[2], texmem, texsize);
-	    MEM_BlockRead32(param[3], (Bit8u*)texmem+texsize, sizeof(GuNccTable));
+	    MEM_BlockRead(param[3], (Bit8u*)texmem+texsize, sizeof(GuNccTable));
 
 	    FP.grFunction1i2p = (pfunc1i2p)fn_pt[i];
 	    FP.grFunction1i2p(param[1], texmem, (Bit8u*)texmem+texsize);

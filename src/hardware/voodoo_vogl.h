@@ -20,42 +20,92 @@
 #ifndef DOSBOX_VOODOO_VOGL_H
 #define DOSBOX_VOODOO_VOGL_H
 
-#include "SDL.h"
-#ifdef LINUX
-#define GL_ARB_multitexture
-#include <GL/gl.h>
-#undef GL_ARB_multitexture
-#undef GL_GLEXT_VERSION
-#undef __gl_glext_h_
-#endif /* LINUX */
-#include "SDL_opengl.h"
+#include <SDL.h>
+#include <SDL_opengl.h>
+#include <SDL_opengl_glext.h>
 
+#undef glActiveTextureARB
+#undef glMultiTexCoord4fARB
+#undef glMultiTexCoord4fvARB
+#undef glCreateShaderObjectARB
+#undef glShaderSourceARB
+#undef glCompileShaderARB
+#undef glCreateProgramObjectARB
+#undef glAttachObjectARB
+#undef glLinkProgramARB
+#undef glUseProgramObjectARB
+#undef glUniform1iARB
+#undef glUniform1fARB
+#undef glUniform2fARB
+#undef glUniform3fARB
+#undef glUniform4fARB
+#undef glGetUniformLocationARB
+#undef glDetachObjectARB
+#undef glDeleteObjectARB
+#undef glGetObjectParameterivARB
+#undef glGetInfoLogARB
+#undef glBlendFuncSeparateEXT
+#undef glGenerateMipmapEXT
+#undef glGetAttribLocationARB
+#undef glVertexAttrib1fARB
 
-/* opengl extensions */
-extern PFNGLACTIVETEXTUREARBPROC glActiveTextureARB;
-extern PFNGLMULTITEXCOORD4FARBPROC glMultiTexCoord4fARB;
-extern PFNGLMULTITEXCOORD4FVARBPROC glMultiTexCoord4fvARB;
-extern PFNGLCREATESHADEROBJECTARBPROC glCreateShaderObjectARB;
-extern PFNGLSHADERSOURCEARBPROC glShaderSourceARB;
-extern PFNGLCOMPILESHADERARBPROC glCompileShaderARB;
-extern PFNGLCREATEPROGRAMOBJECTARBPROC glCreateProgramObjectARB;
-extern PFNGLATTACHOBJECTARBPROC glAttachObjectARB;
-extern PFNGLLINKPROGRAMARBPROC glLinkProgramARB;
-extern PFNGLUSEPROGRAMOBJECTARBPROC glUseProgramObjectARB;
-extern PFNGLUNIFORM1IARBPROC glUniform1iARB;
-extern PFNGLUNIFORM1FARBPROC glUniform1fARB;
-extern PFNGLUNIFORM2FARBPROC glUniform2fARB;
-extern PFNGLUNIFORM3FARBPROC glUniform3fARB;
-extern PFNGLUNIFORM4FARBPROC glUniform4fARB;
-extern PFNGLGETUNIFORMLOCATIONARBPROC glGetUniformLocationARB;
-extern PFNGLDETACHOBJECTARBPROC glDetachObjectARB;
-extern PFNGLDELETEOBJECTARBPROC glDeleteObjectARB;
-extern PFNGLGETOBJECTPARAMETERIVARBPROC glGetObjectParameterivARB;
-extern PFNGLGETINFOLOGARBPROC glGetInfoLogARB;
-extern PFNGLBLENDFUNCSEPARATEEXTPROC glBlendFuncSeparateEXT;
-extern PFNGLGENERATEMIPMAPEXTPROC glGenerateMipmapEXT;
-extern PFNGLGETATTRIBLOCATIONARBPROC glGetAttribLocationARB;
-extern PFNGLVERTEXATTRIB1FARBPROC glVertexAttrib1fARB;
+#ifndef GL_TEXTURE0_ARB
+#define GL_TEXTURE0_ARB 0x84C0
+#endif
+
+typedef void (APIENTRYP PFNGLACTIVETEXTUREARBPROC) (GLenum texture);
+typedef void (APIENTRYP PFNGLMULTITEXCOORD4FARBPROC) (GLenum target, GLfloat s, GLfloat t, GLfloat r, GLfloat q);
+typedef void (APIENTRYP PFNGLMULTITEXCOORD4FVARBPROC) (GLenum target, const GLfloat *v);
+
+extern PFNGLACTIVETEXTUREARBPROC v_glActiveTextureARB;
+extern PFNGLMULTITEXCOORD4FARBPROC v_glMultiTexCoord4fARB;
+extern PFNGLMULTITEXCOORD4FVARBPROC v_glMultiTexCoord4fvARB;
+extern PFNGLCREATESHADEROBJECTARBPROC v_glCreateShaderObjectARB;
+extern PFNGLSHADERSOURCEARBPROC v_glShaderSourceARB;
+extern PFNGLCOMPILESHADERARBPROC v_glCompileShaderARB;
+extern PFNGLCREATEPROGRAMOBJECTARBPROC v_glCreateProgramObjectARB;
+extern PFNGLATTACHOBJECTARBPROC v_glAttachObjectARB;
+extern PFNGLLINKPROGRAMARBPROC v_glLinkProgramARB;
+extern PFNGLUSEPROGRAMOBJECTARBPROC v_glUseProgramObjectARB;
+extern PFNGLUNIFORM1IARBPROC v_glUniform1iARB;
+extern PFNGLUNIFORM1FARBPROC v_glUniform1fARB;
+extern PFNGLUNIFORM2FARBPROC v_glUniform2fARB;
+extern PFNGLUNIFORM3FARBPROC v_glUniform3fARB;
+extern PFNGLUNIFORM4FARBPROC v_glUniform4fARB;
+extern PFNGLGETUNIFORMLOCATIONARBPROC v_glGetUniformLocationARB;
+extern PFNGLDETACHOBJECTARBPROC v_glDetachObjectARB;
+extern PFNGLDELETEOBJECTARBPROC v_glDeleteObjectARB;
+extern PFNGLGETOBJECTPARAMETERIVARBPROC v_glGetObjectParameterivARB;
+extern PFNGLGETINFOLOGARBPROC v_glGetInfoLogARB;
+extern PFNGLBLENDFUNCSEPARATEEXTPROC v_glBlendFuncSeparateEXT;
+extern PFNGLGENERATEMIPMAPEXTPROC v_glGenerateMipmapEXT;
+extern PFNGLGETATTRIBLOCATIONARBPROC v_glGetAttribLocationARB;
+extern PFNGLVERTEXATTRIB1FARBPROC v_glVertexAttrib1fARB;
+
+#define glActiveTextureARB v_glActiveTextureARB
+#define glMultiTexCoord4fARB v_glMultiTexCoord4fARB
+#define glMultiTexCoord4fvARB v_glMultiTexCoord4fvARB
+#define glCreateShaderObjectARB v_glCreateShaderObjectARB
+#define glShaderSourceARB v_glShaderSourceARB
+#define glCompileShaderARB v_glCompileShaderARB
+#define glCreateProgramObjectARB v_glCreateProgramObjectARB
+#define glAttachObjectARB v_glAttachObjectARB
+#define glLinkProgramARB v_glLinkProgramARB
+#define glUseProgramObjectARB v_glUseProgramObjectARB
+#define glUniform1iARB v_glUniform1iARB
+#define glUniform1fARB v_glUniform1fARB
+#define glUniform2fARB v_glUniform2fARB
+#define glUniform3fARB v_glUniform3fARB
+#define glUniform4fARB v_glUniform4fARB
+#define glGetUniformLocationARB v_glGetUniformLocationARB
+#define glDetachObjectARB v_glDetachObjectARB
+#define glDeleteObjectARB v_glDeleteObjectARB
+#define glGetObjectParameterivARB v_glGetObjectParameterivARB
+#define glGetInfoLogARB v_glGetInfoLogARB
+#define glBlendFuncSeparateEXT v_glBlendFuncSeparateEXT
+#define glGenerateMipmapEXT v_glGenerateMipmapEXT
+#define glGetAttribLocationARB v_glGetAttribLocationARB
+#define glVertexAttrib1fARB v_glVertexAttrib1fARB
 
 
 #define VOGL_ATLEAST_V20			0x00000001

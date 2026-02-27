@@ -20,6 +20,8 @@
 #ifndef DOSBOX_VOODOO_IF_H
 #define DOSBOX_VOODOO_IF_H
 
+#include "paging.h"
+
 typedef struct vdraw {
 	Bitu width;
 	Bitu height;
@@ -51,6 +53,10 @@ public:
 	void writew(PhysPt addr,Bitu val);
 	Bitu readd(PhysPt addr);
 	void writed(PhysPt addr,Bitu val);
+
+	void Voodoo_PCI_SetLFB(Bitu val) {
+		// stub
+	}
 };
 
 

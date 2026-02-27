@@ -436,6 +436,121 @@ void PCI_ShutDown(Section* sec){
 	pci_interface=NULL;
 }
 
+#include "voodoo_interface.h"
+
+class PCI_SSTDevice:public PCI_Device {
+private:
+	static const Bit16u vendor=0x121a;	// 3dfx
+	Bit16u oscillator_ctr;
+	Bit16u pci_ctr;
+public:
+	PCI_SSTDevice(Bitu type):PCI_Device(vendor,(type==2)?0x0002:0x0001) {
+		oscillator_ctr=0;
+		pci_ctr=0;
+	}
+
+	static Bit16u VendorID(void) { return vendor; }
+
+	Bits ParseReadRegister(Bit8u regnum) {
+		return regnum;
+	}
+
+	bool OverrideReadRegister(Bit8u regnum, Bit8u* rval, Bit8u* rval_mask) {
+		switch (regnum) {
+			case 0x54:
+				if (DeviceID() >= 2) {
+					oscillator_ctr++;
+					pci_ctr--;
+					*rval=(oscillator_ctr | ((pci_ctr<<16) & 0x0fff0000)) & 0xff;
+					*rval_mask=0xff;
+					return true;
+				}
+				break;
+			case 0x55:
+				if (DeviceID() >= 2) {
+					*rval=((oscillator_ctr | ((pci_ctr<<16) & 0x0fff0000)) >> 8) & 0xff;
+					*rval_mask=0xff;
+					return true;
+				}
+				break;
+			case 0x56:
+				if (DeviceID() >= 2) {
+					*rval=((oscillator_ctr | ((pci_ctr<<16) & 0x0fff0000)) >> 16) & 0xff;
+					*rval_mask=0xff;
+					return true;
+				}
+				break;
+			case 0x57:
+				if (DeviceID() >= 2) {
+					*rval=((oscillator_ctr | ((pci_ctr<<16) & 0x0fff0000)) >> 24) & 0xff;
+					*rval_mask=0x0f;
+					return true;
+				}
+				break;
+			default:
+				break;
+		}
+		return false;
+	}
+
+	Bits ParseWriteRegister(Bit8u regnum,Bit8u value) {
+		if ((regnum>=0x14) && (regnum<0x28)) return -1;	// base addresses are read-only
+		if ((regnum>=0x30) && (regnum<0x34)) return -1;	// expansion rom addresses are read-only
+		switch (regnum) {
+			case 0x10:
+				return (pci_cfg_data[this->PCIId()][this->PCISubfunction()][0x10]&0x0f);
+			case 0x11:
+				return 0x00;
+			case 0x12:
+				return (value&0x00);	// -> 16mb addressable
+			case 0x13:
+				extern void VOODOO_PCI_SetLFB(Bitu);
+				VOODOO_PCI_SetLFB(value<<24);
+				return value;
+			case 0x40:
+				Voodoo_PCI_InitEnable(value&7);
+				break;
+			case 0xc0:
+				Voodoo_PCI_Enable(true);
+				return -1;
+			case 0xe0:
+				Voodoo_PCI_Enable(false);
+				return -1;
+			default:
+				break;
+		}
+		return regnum;
+	}
+
+	bool InitializeRegisters(Bit8u registers[256]) {
+		registers[0x0e]=0x00;	// header type
+		registers[0x10]=0x00;	// base address 0
+		registers[0x11]=0x00;
+		registers[0x12]=0x00;
+		registers[0x13]=0x00;
+		return true;
+	}
+};
+
+void PCI_AddSST_Device(Bitu type) {
+	Bitu ctype = 1;
+	if (type == 1 || type == 2) ctype = type;
+	PCI_Device* voodoo_dev=new PCI_SSTDevice(ctype);
+	if (pci_interface!=NULL) {
+		pci_interface->RegisterPCIDevice(voodoo_dev);
+	} else {
+		if (num_rqueued_devices<max_rqueued_devices)
+			rqueued_devices[num_rqueued_devices++]=voodoo_dev;
+	}
+}
+
+void PCI_RemoveSST_Device(void) {
+	if (pci_interface!=NULL) {
+		pci_interface->RemoveDevice(0x121a, 1);
+		pci_interface->RemoveDevice(0x121a, 2);
+	}
+}
+
 void PCI_Init(Section* sec) {
 	pci_interface = new PCI(sec);
 	sec->AddDestroyFunction(&PCI_ShutDown,false);

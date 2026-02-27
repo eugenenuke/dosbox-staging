@@ -353,7 +353,7 @@ struct SDL_Block {
 	SDL_EventType raltstate;
 };
 
-static SDL_Block sdl;
+SDL_Block sdl;
 
 static SDL_Rect CalculateViewport(int win_width, int win_height);
 static void CleanupSDLResources();
@@ -3280,4 +3280,26 @@ void GFX_GetSize(int &width, int &height, bool &fullscreen) {
 	width = sdl.draw.width;
 	height = sdl.draw.height;
 	fullscreen = sdl.desktop.fullscreen;
+}
+
+bool GFX_IsOpenGL(void) { return sdl.desktop.type == SCREEN_OPENGL; }
+void GFX_SwitchLazyFullscreen(bool lazy) { }
+bool GFX_LazyFullscreenRequested(void) { return false; }
+void GFX_SwitchFullscreenNoReset(void) { GFX_SwitchFullScreen(); }
+void GFX_RestoreMode(void) { }
+void GFX_UpdateSDLCaptureState(void) { }
+void GFX_TearDown(void) { }
+Bitu GFX_ScaleWidth(float &r) { return (Bitu)(sdl.draw.width * r); }
+
+SDL_Surface* SDL_SetVideoMode_Wrap(int width, int height, int bpp, uint32_t flags) {
+	if (!sdl.window) return NULL;
+	SDL_SetWindowSize(sdl.window, width, height);
+	if (flags & SDL_WINDOW_FULLSCREEN) {
+		SDL_SetWindowFullscreen(sdl.window, SDL_WINDOW_FULLSCREEN);
+	} else {
+		SDL_SetWindowFullscreen(sdl.window, 0);
+	}
+	// Simplified wrapper, returning a dummy surface to avoid NULL checks in calling code
+	// where possible, though SDL2 doesn't use a global surface like SDL1.2.
+	return SDL_GetWindowSurface(sdl.window);
 }
