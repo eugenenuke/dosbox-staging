@@ -557,7 +557,7 @@ int main(int argc,char * argv[]) {
 dnl Some target detection and actions for them
 case "$host" in
     *-*-cygwin* | *-*-mingw* | *-*-msys*)
-       LIBS="$LIBS -lwinmm"
+       LIBS="$LIBS -lwinmm -lshlwapi"
        AC_DEFINE(WIN32, 1, [Compiling on Windows])
        AC_DEFINE(NOMINMAX, 1, [Prevent <windows.h> from clobbering std::min and std::max])
        AC_DEFINE(C_DIRECTSERIAL, 1, [ Define to 1 if you want serial passthrough support (Win32 and Posix).])

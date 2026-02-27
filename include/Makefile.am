@@ -39,4 +39,5 @@ support.h \
 timer.h \
 types.h \
 vga.h \
+voodoo.h \
 video.h

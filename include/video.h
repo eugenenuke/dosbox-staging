@@ -51,10 +51,16 @@ typedef void (*GFX_CallBack_t)( GFX_CallBackFunctions_t function );
 #define GFX_CAN_RANDOM  0x4000 //If the interface can also do random access surface
 #define GFX_UNITY_SCALE 0x8000 /* turn of all scaling in render.cpp */
 
+#define GFX_CAN_OPENGL  0x10000
+#define GFX_FULLSCREEN  0x20000
+
 void GFX_Events(void);
 Bitu GFX_GetBestMode(Bitu flags);
 Bitu GFX_GetRGB(Bit8u red,Bit8u green,Bit8u blue);
 void GFX_SetShader(const char* src);
+void GFX_TearDown(void);
+Bitu GFX_ScaleWidth(float &r);
+
 Bitu GFX_SetSize(Bitu width, Bitu height, Bitu flags,
                  double scalex, double scaley,
                  GFX_CallBack_t callback,
@@ -68,6 +74,23 @@ bool GFX_StartUpdate(uint8_t * &pixels, int &pitch);
 void GFX_EndUpdate( const Bit16u *changedLines );
 void GFX_GetSize(int &width, int &height, bool &fullscreen);
 void GFX_LosingFocus(void);
+
+bool GFX_IsFullscreen(void);
+bool GFX_IsOpenGL(void);
+void GFX_SwitchLazyFullscreen(bool lazy);
+bool GFX_LazyFullscreenRequested(void);
+void GFX_SwitchFullscreenNoReset(void);
+void GFX_RestoreMode(void);
+void GFX_UpdateSDLCaptureState(void);
+void GFX_GL_SwapBuffers(void);
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+struct SDL_Surface * SDL_SetVideoMode_Wrap(int width, int height, int bpp, Bit32u flags);
+#ifdef __cplusplus
+}
+#endif
 
 #if defined (REDUCE_JOYSTICK_POLLING)
 void MAPPER_UpdateJoysticks(void);

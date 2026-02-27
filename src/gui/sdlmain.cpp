@@ -59,6 +59,8 @@
 #include "cpu.h"
 #include "control.h"
 #include "render.h"
+#include "glidedef.h"
+#include "voodoo.h"
 
 #include "../libs/ppscale/ppscale.h"
 
@@ -593,6 +595,10 @@ check_surface:
 
 void GFX_ResetScreen(void) {
 	GFX_Stop();
+	if (glide.enabled) {
+		GLIDE_ResetScreen(true);
+		return;
+	}
 	if (sdl.draw.callback)
 		(sdl.draw.callback)( GFX_CallBackReset );
 	GFX_Start();
@@ -2145,6 +2151,12 @@ static void GUI_StartUp(Section * sec) {
 
 #if C_OPENGL
 	if (sdl.desktop.want_type == SCREEN_OPENGL) { /* OPENGL is requested */
+		SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8);
+		SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8);
+		SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8);
+		SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE, 8);
+		SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 16);
+		SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 		if (!SetDefaultWindowMode()) {
 			LOG_MSG("Could not create OpenGL window, switching back to surface");
 			sdl.desktop.want_type = SCREEN_SURFACE;
@@ -3150,6 +3162,8 @@ int main(int argc, char* argv[]) {
 	if (SDL_Init(SDL_INIT_AUDIO | SDL_INIT_VIDEO) < 0)
 		E_Exit("Can't init SDL %s", SDL_GetError());
 	sdl.initialized = true;
+
+
 	// Once initialized, ensure we clean up SDL for all exit conditions
 	atexit(QuitSDL);
 
@@ -3280,4 +3294,75 @@ void GFX_GetSize(int &width, int &height, bool &fullscreen) {
 	width = sdl.draw.width;
 	height = sdl.draw.height;
 	fullscreen = sdl.desktop.fullscreen;
+}
+
+bool GFX_IsOpenGL(void) {
+#if C_OPENGL
+	return sdl.desktop.type == SCREEN_OPENGL;
+#else
+	return false;
+#endif
+}
+
+void GFX_SwitchLazyFullscreen(bool lazy) {
+    sdl.desktop.lazy_init_window_size = lazy;
+}
+
+bool GFX_LazyFullscreenRequested(void) {
+    return sdl.desktop.lazy_init_window_size;
+}
+
+void GFX_SwitchFullscreenNoReset(void) {
+    sdl.desktop.fullscreen = !sdl.desktop.fullscreen;
+}
+
+void GFX_RestoreMode(void) {
+    GFX_ResetScreen();
+}
+
+void GFX_UpdateSDLCaptureState(void) {
+    GFX_UpdateMouseState();
+}
+
+extern "C" SDL_Surface* SDL_SetVideoMode_Wrap(int width, int height, int bpp, Bit32u flags) {
+    // This is a minimal wrapper to support the Voodoo/Glide patch
+    // It maps SDL 1.2-style flags to SDL2
+    Bitu gfx_flags = 0;
+    if (flags & 0x00000002 /* SDL_OPENGL in 1.2 */) gfx_flags |= GFX_CAN_OPENGL;
+    if (flags & 0x80000000 /* SDL_FULLSCREEN in 1.2 */) gfx_flags |= GFX_FULLSCREEN;
+    
+    // Call GFX_SetSize to do the actual work
+    GFX_SetSize(width, height, gfx_flags, 1.0, 1.0, sdl.draw.callback, (double)width/height);
+    
+    return sdl.surface;
+}
+
+void GFX_GL_SwapBuffers(void) {
+#if C_OPENGL
+    if (sdl.window) {
+        SDL_GL_SwapWindow(sdl.window);
+    }
+#endif
+}
+
+void GFX_RegainFocus(void) {
+#if defined (WIN32)
+	sdl.focus_ticks = SDL_GetTicks();
+#endif
+	SetPriority(sdl.priority.focus);
+	CPU_Disable_SkipAutoAdjust();
+	GFX_UpdateMouseState();
+}
+
+void GFX_TearDown(void) {
+    CleanupSDLResources();
+}
+
+Bitu GFX_ScaleWidth(float &r) {
+    if (sdl.draw.pixel_aspect > 1.0) {
+        r = (float)sdl.draw.pixel_aspect;
+        return (Bitu)(sdl.draw.width * sdl.draw.pixel_aspect);
+    }
+    r = 1.0f;
+    return (Bitu)sdl.draw.width;
 }
