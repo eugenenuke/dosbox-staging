@@ -1101,6 +1101,11 @@ void ogl_shaders(const poly_extra_data *extra) {
 
 void voodoo_ogl_draw_triangle(poly_extra_data *extra) {
 	voodoo_state *v=extra->state;
+        static int draw_count = 0;
+        if (draw_count < 1) {
+            LOG_MSG("VOODOO: voodoo_ogl_draw_triangle called (first time)");
+            draw_count++;
+        }
 
 	if (v->ogl_dimchange) {
 		LOG_MSG("VOODOO: OpenGL: dimchange detected in draw_triangle, FBI: %dx%d", (int)v->fbi.width, (int)v->fbi.height);
@@ -1858,6 +1863,13 @@ void voodoo_ogl_set_window(voodoo_state *v) {
 			glOrtho( 0, v->fbi.width, v->fbi.height, 0, 0.0f, -1.0f );
 		if (last_orientation != (INT32)FBZMODE_Y_ORIGIN(v->reg[fbzMode].u))
 			last_orientation = FBZMODE_Y_ORIGIN(v->reg[fbzMode].u);
+        
+        float mat[16];
+        glGetFloatv(GL_PROJECTION_MATRIX, mat);
+        LOG_MSG("VOODOO: OpenGL: PROJECTION: [%f %f %f %f | %f %f %f %f | %f %f %f %f | %f %f %f %f]",
+            mat[0], mat[1], mat[2], mat[3], mat[4], mat[5], mat[6], mat[7],
+            mat[8], mat[9], mat[10], mat[11], mat[12], mat[13], mat[14], mat[15]);
+
 		glMatrixMode(GL_MODELVIEW);
 	}
 

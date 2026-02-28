@@ -1186,6 +1186,10 @@ static void process_msg(Bitu value)
     case _grLfbLock24:
 	// FxBool grLfbLock(GrLock_t type, GrBuffer_t buffer, GrLfbWriteMode_t writeMode,
 	//		GrOriginLocation_t origin, FxBool pixelPipeline, GrLfbInfo_t *info)
+#if LOG_GLIDE
+        LOG_MSG("Glide:grLfbLock type=%d buffer=%d mode=%d origin=%d", 
+            (int)param[1], (int)param[2], (int)param[3], (int)param[4]);
+#endif
 	FP.grRFunction5i1p = (prfunc5i1p)fn_pt[i];
 	if(ret == 0) {
 	    LOG_MSG("Glide:Invalid return value handle for %s!", grTable[i].name);
@@ -1316,7 +1320,8 @@ static void process_msg(Bitu value)
 	// FxBool grLfbWriteRegion(GrBuffer_t dst_buffer, FxU32 dst_x, FxU32 dst_y,
 	//	GrLfbSrcFmt_t src_format, FxU32 src_width, FxU32 src_height, FxU32 src_stride, void *src_data)
 #if LOG_GLIDE
-        LOG_MSG("Glide:grLfbWriteRegion(%d, %d, %d, %d, %d)", (int)param[1], (int)param[2], (int)param[3], (int)param[5], (int)param[6]);
+        LOG_MSG("Glide:grLfbWriteRegion dst=(%d,%d) size=(%d,%d) stride=%d", 
+            (int)param[2], (int)param[3], (int)param[5], (int)param[6], (int)param[7]);
 #endif
 	FP.grRFunction7i1p = (prfunc7i1p)fn_pt[i];
 	if(ret == 0) {
@@ -1933,12 +1938,14 @@ static void process_msg(Bitu value)
 	// void guDrawTriangleWithClip(const GrVertex *va, const GrVertex *vb, const GrVertex *vc)
 	FP.grFunction3p = (pfunc3p)fn_pt[i];
 	MEM_BlockRead(param[1], &vertex[0], sizeof(GrVertex));
-
 	MEM_BlockRead(param[2], &vertex[1], sizeof(GrVertex));
 	MEM_BlockRead(param[3], &vertex[2], sizeof(GrVertex));
 #if LOG_GLIDE
         static int gutri_count = 0;
         if (gutri_count < 1) {
+            LOG_MSG("Glide:guDrawTriangleWithClip sizeof(GrVertex)=%d", (int)sizeof(GrVertex));
+            Bit32u *v0_raw = (Bit32u*)&vertex[0];
+            LOG_MSG("Glide:guDrawTriangleWithClip v0_hex: %08x %08x %08x %08x", v0_raw[0], v0_raw[1], v0_raw[2], v0_raw[3]);
             LOG_MSG("Glide:guDrawTriangleWithClip v0=(%f,%f) v1=(%f,%f) v2=(%f,%f)", 
                 vertex[0].x, vertex[0].y, vertex[1].x, vertex[1].y, vertex[2].x, vertex[2].y);
             gutri_count++;
