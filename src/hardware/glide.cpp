@@ -184,16 +184,22 @@ static void statWMInfo(void)
     SDL_VERSION(&wmi.version);
     if(SDL_GetWindowWMInfo(sdl.window, &wmi)) {
         switch(wmi.subsystem) {
-#if defined(SDL_VIDEO_DRIVER_X11)
-            case SDL_SYSWM_X11:     hwnd = (HostPt)wmi.info.x11.window; break;
+            case SDL_SYSWM_X11:
+                hwnd = (HostPt)(uintptr_t)wmi.info.x11.window;
+                break;
+#if defined(SDL_VIDEO_DRIVER_WINDOWS) || defined(WIN32)
+            case SDL_SYSWM_WINDOWS:
+                hwnd = (HostPt)wmi.info.win.window;
+                break;
 #endif
-#if defined(SDL_VIDEO_DRIVER_WINDOWS)
-            case SDL_SYSWM_WINDOWS: hwnd = (HostPt)wmi.info.win.window; break;
+#if defined(SDL_VIDEO_DRIVER_COCOA) || defined(MACOSX)
+            case SDL_SYSWM_COCOA:
+                hwnd = (HostPt)wmi.info.cocoa.window;
+                break;
 #endif
-#if defined(SDL_VIDEO_DRIVER_COCOA)
-            case SDL_SYSWM_COCOA:   hwnd = (HostPt)wmi.info.cocoa.window; break;
-#endif
-            default:                hwnd = 0; break;
+            default:
+                hwnd = 0;
+                break;
         }
 	LOG_MSG("Glide:statWMInfo: hwnd = %p (subsystem: %d)", (void*)hwnd, (int)wmi.subsystem);
     } else {
@@ -1400,9 +1406,15 @@ static void process_msg(Bitu value)
 	}
 
 	glide.enabled = true;
-	glide.width = param[8];
-	glide.height = param[9];
+	glide.width = (Bit16u)param[8];
+	glide.height = (Bit16u)param[9];
 	GrOriginLocation = param[5];
+
+	glide.lfb_pagehandler->SetLinPt(mem_readd(param[10]));
+        if (glide.swap_fps)
+            LOG_MSG("Glide:Frame rate limit [ %d FPS ]", (int)glide.swap_fps);
+	LOG_MSG("Glide:Resolution:%dx%d, LFB at 0x%x (physical) / 0x%x (linear)",
+		(int)glide.width, (int)glide.height, (unsigned int)glide.lfb_pagehandler->GetPhysPt(), (unsigned int)glide.lfb_pagehandler->GetLinPt());
 
         do {
             Bitu GFX_ScaleWidth(float &);
