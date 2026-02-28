@@ -307,3 +307,5 @@ void Voodoo_PCI_Enable(bool enable) {
 PageHandler* Voodoo_GetPageHandler() {
 	return voodoo_pagehandler;
 }
+
+voodoo_state * voodoo_get_state(void) { return v; }

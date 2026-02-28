@@ -115,7 +115,6 @@ struct SDL_Block {
 	SDL_Window *window;
 };
 extern SDL_Block sdl;
-extern voodoo_state *v;
 
 #if defined (WIN32)
 #include <windows.h>
@@ -1490,12 +1489,13 @@ static void process_msg(Bitu value)
 	GrOriginLocation = param[5];
 
 	// Update hardware dimensions to match Glide
-	if (v) {
+	voodoo_state *v_state = voodoo_get_state();
+	if (v_state) {
 	    LOG_MSG("Glide: Updating hardware dimensions to %dx%d (was %dx%d)", 
-                (int)glide.width, (int)glide.height, (int)v->fbi.width, (int)v->fbi.height);
-	    v->fbi.width = glide.width;
-	    v->fbi.height = glide.height;
-	    v->ogl_dimchange = true;
+                (int)glide.width, (int)glide.height, (int)v_state->fbi.width, (int)v_state->fbi.height);
+	    v_state->fbi.width = glide.width;
+	    v_state->fbi.height = glide.height;
+	    v_state->ogl_dimchange = true;
 	} else {
             LOG_MSG("Glide: Warning: voodoo_state is NULL during grSstWinOpen!");
         }

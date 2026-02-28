@@ -29,6 +29,7 @@
 
 
 extern voodoo_state *v;
+voodoo_state * voodoo_get_state(void);
 
 void voodoo_w(UINT32 offset, UINT32 data, UINT32 mask);
 UINT32 voodoo_r(UINT32 offset);
