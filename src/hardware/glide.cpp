@@ -28,6 +28,7 @@
 #include "drives.h"
 #include "shell.h"
 #include "voodoo_emu.h"
+#include <SDL_opengl.h>
 
 #include <iomanip>
 #include <sstream>
@@ -114,7 +115,9 @@ struct SDL_Block {
 	SDL_Surface *surface;
 	SDL_Window *window;
 };
+extern void (APIENTRY *v_glViewport)(GLint, GLint, GLsizei, GLsizei);
 extern SDL_Block sdl;
+void (APIENTRY *v_glViewport)(GLint, GLint, GLsizei, GLsizei) = NULL;
 
 #if defined (WIN32)
 #include <windows.h>
@@ -591,6 +594,8 @@ public:
 	IO_RegisterReadHandler(glide_base,read_gl,IO_MB);
 	IO_RegisterWriteHandler(glide_base,write_gl,IO_MB);
 
+        v_glViewport = (void (APIENTRY *)(GLint, GLint, GLsizei, GLsizei))SDL_GL_GetProcAddress("glViewport");
+
 	ostringstream temp;
 	temp << "SET GLIDE=" << hex << glide_base << ends;
 
@@ -894,6 +899,13 @@ static void process_msg(Bitu value)
             void swap_fpslimit(const Bitu);
             if (glide.swap_fps)
                 swap_fpslimit(glide.swap_fps);
+
+            // Force viewport to window size
+            int dw, dh;
+            SDL_GL_GetDrawableSize(sdl.window, &dw, &dh);
+            if (dw > 0 && dh > 0) {
+                if (v_glViewport) v_glViewport(0, 0, dw, dh);
+            }
         } while(0);
 	ret_value = G_OK;
 	break;
@@ -1537,7 +1549,8 @@ static void process_msg(Bitu value)
                 (int)glide.width, (int)glide.height, (int)win_width, (int)win_height, (unsigned int)flags);
             
             glide.swap_fps = VOODOO_FpsLimit();
-            conf_glide2x(flags, win_width);
+            // Pass the GUEST resolution to the wrapper so its internal logic matches the game
+            conf_glide2x(flags, glide.width);
         } while(0);
 
 	// Resize window to desired window size
@@ -1556,6 +1569,16 @@ static void process_msg(Bitu value)
 	    ret_value = G_OK;
 	    break;
 	}
+
+        // Force physical viewport to the actual window size
+        int dw, dh;
+        SDL_GL_GetDrawableSize(sdl.window, &dw, &dh);
+        if (dw > 0 && dh > 0) {
+            if (v_glViewport) {
+                v_glViewport(0, 0, dw, dh);
+                LOG_MSG("Glide: Forced viewport to %dx%d after WinOpen", dw, dh);
+            }
+        }
 
 	mem_writed(ret, k);
 	if(glide.splash) {
