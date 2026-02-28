@@ -43,10 +43,76 @@ using namespace std;
 #include "SDL_syswm.h"
 
 struct SDL_Block {
-	SDL_Window *window;
+	bool initialized;
+	bool active;
+	bool updating;
+	bool update_display_contents;
+	bool resizing_window;
+	int scaling_mode;
 	struct {
+		int width;
+		int height;
+		double scalex;
+		double scaley;
+		double pixel_aspect;
+		void* callback;
+	} draw;
+	bool wait_on_error;
+	struct {
+		struct {
+			Bit16u width;
+			Bit16u height;
+			bool fixed;
+			bool display_res;
+		} full;
+		struct {
+			uint16_t width;
+			uint16_t height;
+			bool use_original_size;
+			bool resizable;
+		} window;
+		Bit8u bpp;
 		bool fullscreen;
+		bool switching_fullscreen;
+		bool lazy_init_window_size;
+		bool vsync;
+		bool want_resizable_window;
+		int type;
+		int want_type;
 	} desktop;
+#if C_OPENGL
+	struct {
+		SDL_GLContext context;
+		int pitch;
+		void *framebuf;
+		unsigned int buffer;
+		unsigned int texture;
+		unsigned int displaylist;
+		int max_texsize;
+		bool bilinear;
+		bool packed_pixel;
+		bool paletted_texture;
+		bool pixel_buffer_object;
+		bool use_shader;
+		unsigned int program_object;
+		const char *shader_src;
+		struct {
+			int texture_size;
+			int input_size;
+			int output_size;
+			int frame_count;
+		} ruby;
+		unsigned int actual_frame_count;
+		float vertex_data[2*3];
+	} opengl;
+#endif
+	struct {
+		int focus;
+		int nofocus;
+	} priority;
+	SDL_Rect clip;
+	SDL_Surface *surface;
+	SDL_Window *window;
 };
 extern SDL_Block sdl;
 extern voodoo_state *v;
@@ -1425,10 +1491,14 @@ static void process_msg(Bitu value)
 
 	// Update hardware dimensions to match Glide
 	if (v) {
+	    LOG_MSG("Glide: Updating hardware dimensions to %dx%d (was %dx%d)", 
+                (int)glide.width, (int)glide.height, (int)v->fbi.width, (int)v->fbi.height);
 	    v->fbi.width = glide.width;
 	    v->fbi.height = glide.height;
 	    v->ogl_dimchange = true;
-	}
+	} else {
+            LOG_MSG("Glide: Warning: voodoo_state is NULL during grSstWinOpen!");
+        }
 
 	glide.lfb_pagehandler->SetLinPt(mem_readd(param[10]));
         if (glide.swap_fps)

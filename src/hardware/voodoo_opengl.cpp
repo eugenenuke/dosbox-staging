@@ -1103,6 +1103,7 @@ void voodoo_ogl_draw_triangle(poly_extra_data *extra) {
 	voodoo_state *v=extra->state;
 
 	if (v->ogl_dimchange) {
+		LOG_MSG("VOODOO: OpenGL: dimchange detected in draw_triangle, FBI: %dx%d", (int)v->fbi.width, (int)v->fbi.height);
 		v->ogl_dimchange = false;
 		voodoo_ogl_set_window(v);
 	}
@@ -1415,8 +1416,76 @@ void swap_fpslimit(const Bitu fps) {
 }
 
 struct SDL_Block {
+	bool initialized;
+	bool active;
+	bool updating;
+	bool update_display_contents;
+	bool resizing_window;
+	int scaling_mode;
+	struct {
+		int width;
+		int height;
+		double scalex;
+		double scaley;
+		double pixel_aspect;
+		void* callback;
+	} draw;
+	bool wait_on_error;
+	struct {
+		struct {
+			Bit16u width;
+			Bit16u height;
+			bool fixed;
+			bool display_res;
+		} full;
+		struct {
+			uint16_t width;
+			uint16_t height;
+			bool use_original_size;
+			bool resizable;
+		} window;
+		Bit8u bpp;
+		bool fullscreen;
+		bool switching_fullscreen;
+		bool lazy_init_window_size;
+		bool vsync;
+		bool want_resizable_window;
+		int type;
+		int want_type;
+	} desktop;
+#if C_OPENGL
+	struct {
+		SDL_GLContext context;
+		int pitch;
+		void *framebuf;
+		unsigned int buffer;
+		unsigned int texture;
+		unsigned int displaylist;
+		int max_texsize;
+		bool bilinear;
+		bool packed_pixel;
+		bool paletted_texture;
+		bool pixel_buffer_object;
+		bool use_shader;
+		unsigned int program_object;
+		const char *shader_src;
+		struct {
+			int texture_size;
+			int input_size;
+			int output_size;
+			int frame_count;
+		} ruby;
+		unsigned int actual_frame_count;
+		float vertex_data[2*3];
+	} opengl;
+#endif
+	struct {
+		int focus;
+		int nofocus;
+	} priority;
+	SDL_Rect clip;
+	SDL_Surface *surface;
 	SDL_Window *window;
-	// dummy, only window is used here
 };
 extern SDL_Block sdl;
 
@@ -1766,13 +1835,19 @@ void voodoo_ogl_set_window(voodoo_state *v) {
 	extern GLIDE_Block glide;
 	if (glide.enabled && glide.width && glide.height) {
 		if (v->fbi.width != glide.width || v->fbi.height != glide.height) {
+			LOG_MSG("VOODOO: OpenGL: Synchronizing FBI (%dx%d) with Glide (%dx%d)", 
+				(int)v->fbi.width, (int)v->fbi.height, (int)glide.width, (int)glide.height);
 			v->fbi.width = glide.width;
 			v->fbi.height = glide.height;
 			size_changed = true;
 		}
 	}
 
-	if ((v->fbi.width!=last_width) || (v->fbi.height!=last_height)) size_changed=true;
+	if ((v->fbi.width!=last_width) || (v->fbi.height!=last_height)) {
+		LOG_MSG("VOODOO: OpenGL: Internal resolution change: %dx%d (was %dx%d)", 
+			(int)v->fbi.width, (int)v->fbi.height, (int)last_width, (int)last_height);
+		size_changed=true;
+	}
 	if (size_changed || (last_orientation != (INT32)FBZMODE_Y_ORIGIN(v->reg[fbzMode].u))) {
 		glLoadIdentity( );
 		if (FBZMODE_Y_ORIGIN(v->reg[fbzMode].u))
