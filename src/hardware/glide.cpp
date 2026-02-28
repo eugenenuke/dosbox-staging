@@ -1401,9 +1401,9 @@ static void process_msg(Bitu value)
 	    ret_value = G_OK; return;
 	}
 
-	/* Tie Break Tennis */
-	if(glide.enabled) {
-	    LOG_MSG("Glide:grSstWinOpen called when glide is active!");
+	/* Tie Break Tennis - but allow resolution changes */
+	if(glide.enabled && glide.width == (Bit16u)param[8] && glide.height == (Bit16u)param[9]) {
+	    LOG_MSG("Glide:grSstWinOpen called with same resolution, ignoring.");
 	    mem_writed(ret, FXTRUE);
 	    ret_value = G_OK;
 	    break;

@@ -1753,6 +1753,16 @@ void voodoo_ogl_set_window(voodoo_state *v) {
 
 	// 	matrix mode GL_PROJECTION assumed
 	bool size_changed=false;
+
+	// Check if resolution changed in registers
+	Bitu reg_width = (v->reg[fbzMode].u >> 10) & 0x3ff;
+	Bitu reg_height = (v->reg[fbzMode].u >> 20) & 0x3ff;
+	if (reg_width && reg_height && (reg_width != v->fbi.width || reg_height != v->fbi.height)) {
+		v->fbi.width = reg_width;
+		v->fbi.height = reg_height;
+		size_changed = true;
+	}
+
 	if ((v->fbi.width!=last_width) || (v->fbi.height!=last_height)) size_changed=true;
 	if (size_changed || (last_orientation != (INT32)FBZMODE_Y_ORIGIN(v->reg[fbzMode].u))) {
 		glLoadIdentity( );
