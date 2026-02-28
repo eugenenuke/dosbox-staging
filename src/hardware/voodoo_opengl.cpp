@@ -1860,11 +1860,18 @@ void voodoo_ogl_set_window(voodoo_state *v) {
 
 	int dw, dh;
 	SDL_GL_GetDrawableSize(sdl.window, &dw, &dh);
-	glViewport( 0, 0, dw, dh );
+
+        if (glide.enabled) {
+            LOG_MSG("VOODOO: OpenGL: Passthrough active, skipping viewport override. Window is %dx%d", dw, dh);
+        } else {
+            LOG_MSG("VOODOO: OpenGL: Forcing viewport to %dx%d", dw, dh);
+            glViewport( 0, 0, dw, dh );
+        }
+
 	if (size_changed) {
 		last_width = v->fbi.width;
 		last_height = v->fbi.height;
-		LOG_MSG("VOODOO: OpenGL: Viewport set to %dx%d (FBI: %dx%d)", dw, dh, (int)v->fbi.width, (int)v->fbi.height);
+		LOG_MSG("VOODOO: OpenGL: Viewport status: Window %dx%d (FBI: %dx%d)", dw, dh, (int)v->fbi.width, (int)v->fbi.height);
 	}
 }
 
