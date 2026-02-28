@@ -1528,23 +1528,21 @@ static void process_msg(Bitu value)
                 (VOODOO_SRGB()? WRAPPER_FLAG_FRAMEBUFFER_SRGB:0);
             
             LOG_MSG("Glide: passthrough grSstWinOpen start. width=%d height=%d", (int)glide.width, (int)glide.height);
-            int dw, dh;
-            SDL_GL_GetDrawableSize(sdl.window, &dw, &dh);
-            if (dw > 0 && dh > 0) {
-                win_width = (Bitu)dw;
-                win_height = (Bitu)dh;
-            }
+            // In passthrough, we should resize the window to the GUEST resolution
+            // as the wrapper expects to own the window/context and do its own scaling/fullscreening.
+            win_width = (Bitu)glide.width;
+            win_height = (Bitu)glide.height;
 
             LOG_MSG("Glide: passthrough grSstWinOpen: guest_res=%dx%d, win_res=%dx%d, flags=0x%x", 
                 (int)glide.width, (int)glide.height, (int)win_width, (int)win_height, (unsigned int)flags);
             
             glide.swap_fps = VOODOO_FpsLimit();
-            // Pass the GUEST resolution to the wrapper.
-            LOG_MSG("Glide: passthrough calling conf_glide2x with res=%d", (int)glide.width);
-            conf_glide2x(flags, glide.width);
+            // Pass 0 to the wrapper so it detects actual window size and handles aspect ratio.
+            LOG_MSG("Glide: passthrough calling conf_glide2x with res=0 (auto)");
+            conf_glide2x(flags, 0);
         } while(0);
 
-	// Resize window to desired window size
+	// Resize window to desired guest size
 	VGA_SetOverride(true);
 	GFX_Stop();
 	SDL_SetVideoMode_Wrap(win_width, win_height, 0,
