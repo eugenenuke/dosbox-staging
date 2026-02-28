@@ -1527,6 +1527,7 @@ static void process_msg(Bitu value)
                 (VOODOO_MSAA() << 2) |
                 (VOODOO_SRGB()? WRAPPER_FLAG_FRAMEBUFFER_SRGB:0);
             
+            LOG_MSG("Glide: passthrough grSstWinOpen start. width=%d height=%d", (int)glide.width, (int)glide.height);
             int dw, dh;
             SDL_GL_GetDrawableSize(sdl.window, &dw, &dh);
             if (dw > 0 && dh > 0) {
@@ -1534,12 +1535,12 @@ static void process_msg(Bitu value)
                 win_height = (Bitu)dh;
             }
 
-            LOG_MSG("Glide:grSstWinOpen: guest_res=%dx%d, win_res=%dx%d, flags=0x%x", 
+            LOG_MSG("Glide: passthrough grSstWinOpen: guest_res=%dx%d, win_res=%dx%d, flags=0x%x", 
                 (int)glide.width, (int)glide.height, (int)win_width, (int)win_height, (unsigned int)flags);
             
             glide.swap_fps = VOODOO_FpsLimit();
-            // Pass the game resolution to the wrapper so it handles clipping/LFB according to what the game expects.
-            // Aspect ratio scaling is now handled by voodoo_opengl.cpp overriding the viewport.
+            // Pass the GUEST resolution to the wrapper.
+            LOG_MSG("Glide: passthrough calling conf_glide2x with res=%d", (int)glide.width);
             conf_glide2x(flags, glide.width);
         } while(0);
 
@@ -1551,6 +1552,7 @@ static void process_msg(Bitu value)
 
 	statWMInfo();
 
+        LOG_MSG("Glide: passthrough calling wrapper grSstWinOpen with hwnd=%p", (void*)hwnd);
 	k = FP.grRFunction1p6i(hwnd, param[2], param[3], param[4], param[5], param[6], param[7]);
 	if(k == FXFALSE) {
 	    LOG_MSG("Glide:grSstWinOpen failed!");
