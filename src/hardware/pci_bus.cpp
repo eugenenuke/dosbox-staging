@@ -504,7 +504,7 @@ public:
 			case 0x12:
 				return (value&0x00);	// -> 16mb addressable
 			case 0x13:
-				extern void VOODOO_PCI_SetLFB(Bitu);
+				extern void VOODOO_PCI_SetLFB(Bit32u);
 				VOODOO_PCI_SetLFB(value<<24);
 				return value;
 			case 0x40:

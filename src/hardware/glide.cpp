@@ -189,6 +189,7 @@ static void statWMInfo(void)
 #else
         hwnd = 0;
 #endif
+	LOG_MSG("Glide:statWMInfo: hwnd = %p", (void*)hwnd);
     } else {
 	LOG_MSG("SDL:Error retrieving window information");
     }
