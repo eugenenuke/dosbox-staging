@@ -705,7 +705,8 @@ static void process_msg(Bitu value)
 
     if((i > GLIDE_MAX) || (fn_pt[i] == NULL)) {
 	LOG_MSG("Glide:Invalid function pointer for call %s", (i > GLIDE_MAX) ? "(invalid)" : grTable[i].name);
-	return;
+	ret_value = G_OK;
+	ret_value = G_OK; return;
     }
 
 #if LOG_GLIDE
@@ -808,7 +809,7 @@ static void process_msg(Bitu value)
 	FP.grRFunction0 = (prfunc0)fn_pt[i];
 	if(ret == 0) {
 	    LOG_MSG("Glide:Invalid return value handle for %s!", grTable[i].name);
-	    return;
+	    ret_value = G_OK; return;
 	}
 	mem_writed(ret, FP.grRFunction0());
 	ret_value = G_OK;
@@ -1098,13 +1099,13 @@ static void process_msg(Bitu value)
 	FP.grRFunction5i1p = (prfunc5i1p)fn_pt[i];
 	if(ret == 0) {
 	    LOG_MSG("Glide:Invalid return value handle for %s!", grTable[i].name);
-	    return;
+	    ret_value = G_OK; return;
 	}
 
 	buffer = (Bitu)param[2];
 	if (buffer >= GLIDE_BUFFERS) {
 	    LOG_MSG("Glide:Invalid buffer passed in grLfbLock (%d)", buffer);
-	    return;
+	    ret_value = G_OK; return;
 	}
 
 	// Buffer address should stay the same after BufferSwap, so check which buffer to lock
@@ -1179,7 +1180,7 @@ static void process_msg(Bitu value)
 	FP.grRFunction6i1p = (prfunc6i1p)fn_pt[i];
 	if(ret == 0) {
 	    LOG_MSG("Glide:Invalid return value handle for %s!", grTable[i].name);
-	    return;
+	    ret_value = G_OK; return;
 	}
 	mem_writed(ret, FP.grRFunction6i1p(param[1], param[2], param[3], param[4], param[5], param[6], ptr16));
 	MEM_BlockWrite(param[7], ptr16, param[5]*param[6]);
@@ -1190,7 +1191,7 @@ static void process_msg(Bitu value)
 	FP.grRFunction2i = (prfunc2i)fn_pt[i];
 	if(ret == 0) {
 	    LOG_MSG("Glide:Invalid return value handle (%d)!", _grLfbUnlock8);
-	    return;
+	    ret_value = G_OK; return;
 	}
 	k = FXTRUE;
 	buffer = param[2];
@@ -1224,7 +1225,7 @@ static void process_msg(Bitu value)
 	FP.grRFunction7i1p = (prfunc7i1p)fn_pt[i];
 	if(ret == 0) {
 	    LOG_MSG("Glide:Invalid return value handle for %s!", grTable[i].name);
-	    return;
+	    ret_value = G_OK; return;
 	}
 
 	MEM_BlockRead(param[8], ptr16, param[6]*param[7]);
@@ -1258,7 +1259,7 @@ static void process_msg(Bitu value)
 	FP.grRFunction1i = (prfunc1i)fn_pt[i];
 	if(ret == 0) {
 	    LOG_MSG("Glide:Invalid return value handle for %s!", grTable[i].name);
-	    return;
+	    ret_value = G_OK; return;
 	}
 	mem_writed(ret, FP.grRFunction1i(param[1]));
 	ret_value = G_OK;
@@ -1273,7 +1274,7 @@ static void process_msg(Bitu value)
 	FP.grRFunction0 = (prfunc0)fn_pt[i];
 	if(ret == 0) {
 	    LOG_MSG("Glide:Invalid return value handle for %s!", grTable[i].name);
-	    return;
+	    ret_value = G_OK; return;
 	}
 	mem_writed(ret, FP.grRFunction0());
 	ret_value = G_OK;
@@ -1298,7 +1299,7 @@ static void process_msg(Bitu value)
 	MEM_BlockRead(param[1], texmem, sizeof(GrHwConfiguration));
 	if(ret == 0) {
 	    LOG_MSG("Glide:Invalid return value handle for %s!", grTable[i].name);
-	    return;
+	    ret_value = G_OK; return;
 	}
 	mem_writed(ret, FP.grRFunction1p(texmem));
 	MEM_BlockWrite(param[1], texmem, sizeof(GrHwConfiguration));
@@ -1310,7 +1311,7 @@ static void process_msg(Bitu value)
 	MEM_BlockRead(param[1], texmem, sizeof(GrHwConfiguration));
 	if(ret == 0) {
 	    LOG_MSG("Glide:Invalid return value handle for %s!", grTable[i].name);
-	    return;
+	    ret_value = G_OK; return;
 	}
 	mem_writed(ret, FP.grRFunction1p(texmem));
 	MEM_BlockWrite(param[1], texmem, sizeof(GrHwConfiguration));
@@ -1326,7 +1327,7 @@ static void process_msg(Bitu value)
 	FP.grRFunction0 = (prfunc0)fn_pt[i];
 	if(ret == 0) {
 	    LOG_MSG("Glide:Invalid return value handle for %s!", grTable[i].name);
-	    return;
+	    ret_value = G_OK; return;
 	}
 	mem_writed(ret, FP.grRFunction0());
 	ret_value = G_OK;
@@ -1336,7 +1337,7 @@ static void process_msg(Bitu value)
 	FP.grRFunction0 = (prfunc0)fn_pt[i];
 	if(ret == 0) {
 	    LOG_MSG("Glide:Invalid return value handle for %s!", grTable[i].name);
-	    return;
+	    ret_value = G_OK; return;
 	}
 	mem_writed(ret, FP.grRFunction0());
 	ret_value = G_OK;
@@ -1351,7 +1352,7 @@ static void process_msg(Bitu value)
 	FP.grRFunction0 = (prfunc0)fn_pt[i];
 	if(ret == 0) {
 	    LOG_MSG("Glide:Invalid return value handle for %s!", grTable[i].name);
-	    return;
+	    ret_value = G_OK; return;
 	}
 	mem_writed(ret, FP.grRFunction0());
 	ret_value = G_OK;
@@ -1361,7 +1362,7 @@ static void process_msg(Bitu value)
 	FP.grRFunction0 = (prfunc0)fn_pt[i];
 	if(ret == 0) {
 	    LOG_MSG("Glide:Invalid return value handle for %s!", grTable[i].name);
-	    return;
+	    ret_value = G_OK; return;
 	}
 	mem_writed(ret, FP.grRFunction0());
 	ret_value = G_OK;
@@ -1378,7 +1379,7 @@ static void process_msg(Bitu value)
 	FP.grRFunction0 = (prfunc0)fn_pt[i];
 	if(ret == 0) {
 	    LOG_MSG("Glide:Invalid return value handle for %s!", grTable[i].name);
-	    return;
+	    ret_value = G_OK; return;
 	}
 	mem_writed(ret, FP.grRFunction0());
 	ret_value = G_OK;
@@ -1397,7 +1398,7 @@ static void process_msg(Bitu value)
 	FP.grRFunction1p6i = (prfunc1p6i)fn_pt[i];
 	if(ret == 0) {
 	    LOG_MSG("Glide:Invalid return value handle for %s!", grTable[i].name);
-	    return;
+	    ret_value = G_OK; return;
 	}
 
 	/* Tie Break Tennis */
@@ -1492,7 +1493,7 @@ static void process_msg(Bitu value)
 	FP.grRFunction4i = (prfunc4i)fn_pt[i];
 	if(ret == 0) {
 	    LOG_MSG("Glide:Invalid return value handle for %s!", grTable[i].name);
-	    return;
+	    ret_value = G_OK; return;
 	}
 	mem_writed(ret, FP.grRFunction4i(param[1], param[2], param[3], param[4]));
 	ret_value = G_OK;
@@ -1524,7 +1525,7 @@ static void process_msg(Bitu value)
 	FP.grRFunction1i1p = (prfunc1i1p)fn_pt[_grTexTextureMemRequired8];
 	if(FP.grRFunction1i1p == NULL) {
 	    LOG_MSG("Glide:Unable to get pointer to grTexTextureMemRequired");
-	    return;
+	    ret_value = G_OK; return;
 	}
 
 	MEM_BlockRead(param[4], &dbtexinfo, sizeof(DBGrTexInfo));
@@ -1550,7 +1551,7 @@ static void process_msg(Bitu value)
 	FP.grRFunction1i1p = (prfunc1i1p)fn_pt[_grTexTextureMemRequired8];
 	if(FP.grRFunction1i1p == NULL) {
 	    LOG_MSG("Glide:Unable to get pointer to grTexTextureMemRequired");
-	    return;
+	    ret_value = G_OK; return;
 	}
 
 	texinfo.smallLod = param[3];
@@ -1577,7 +1578,7 @@ static void process_msg(Bitu value)
 	FP.grRFunction1i1p = (prfunc1i1p)fn_pt[_grTexTextureMemRequired8];
 	if(FP.grRFunction1i1p == NULL) {
 	    LOG_MSG("Glide:Unable to get pointer to grTexTextureMemRequired");
-	    return;
+	    ret_value = G_OK; return;
 	}
 
 	texinfo.smallLod = param[3];
@@ -1634,7 +1635,7 @@ static void process_msg(Bitu value)
 	FP.grRFunction1i = (prfunc1i)fn_pt[i];
 	if(ret == 0) {
 	    LOG_MSG("Glide:Invalid return value handle for %s!", grTable[i].name);
-	    return;
+	    ret_value = G_OK; return;
 	}
 	mem_writed(ret, FP.grRFunction1i(param[1]));
 	ret_value = G_OK;
@@ -1644,7 +1645,7 @@ static void process_msg(Bitu value)
 	FP.grRFunction1i = (prfunc1i)fn_pt[i];
 	if(ret == 0) {
 	    LOG_MSG("Glide:Invalid return value handle for %s!", grTable[i].name);
-	    return;
+	    ret_value = G_OK; return;
 	}
 	mem_writed(ret, FP.grRFunction1i(param[1]));
 	ret_value = G_OK;
@@ -1704,7 +1705,7 @@ static void process_msg(Bitu value)
 	FP.grRFunction1i1p = (prfunc1i1p)fn_pt[i];
 	if(ret == 0) {
 	    LOG_MSG("Glide:Invalid return value handle for %s!", grTable[i].name);
-	    return;
+	    ret_value = G_OK; return;
 	}
 
 	// Copy the data from DB struct
@@ -1733,7 +1734,7 @@ static void process_msg(Bitu value)
 	FP.grRFunction2p = (prfunc2p)fn_pt[i];
 	if(ret == 0) {
 	    LOG_MSG("Glide:Invalid return value handle for %s!", grTable[i].name);
-	    return;
+	    ret_value = G_OK; return;
 	}
 	MEM_StrCopy(param[1], filename, 512);
 
@@ -1763,7 +1764,7 @@ static void process_msg(Bitu value)
 	FP.grRFunction2p = (prfunc2p)fn_pt[i];
 	if(ret == 0) {
 	    LOG_MSG("Glide:Invalid return value handle for %s!", grTable[i].name);
-	    return;
+	    ret_value = G_OK; return;
 	}
 
 	// Although glide ref specifies *info should be filled by gu3dfGetInfo before calling gu3dfLoad,
@@ -1863,7 +1864,7 @@ static void process_msg(Bitu value)
 	FP.grFFunction1i = (pffunc1i)fn_pt[i];
 	if(ret == 0) {
 	    LOG_MSG("Glide:Invalid return value handle for %s!", grTable[i].name);
-	    return;
+	    ret_value = G_OK; return;
 	}
 	float tmp = FP.grFFunction1i(param[1]);
 	SDL_memcpy(&j, &tmp, 4);
@@ -1917,7 +1918,7 @@ static void process_msg(Bitu value)
 	FP.grRFunction13i1f1i = (prfunc13i1f1i)fn_pt[i];
 	if(ret == 0) {
 	    LOG_MSG("Glide:Invalid return value handle for %s!", grTable[i].name);
-	    return;
+	    ret_value = G_OK; return;
 	}
 	mem_writed(ret, FP.grRFunction13i1f1i(param[1], param[2], param[3], param[4], param[5], param[6], param[7],
 			    param[8], param[9], param[10], param[11], param[12], param[13], int_to_float(param[14]), param[15]));
@@ -1931,7 +1932,7 @@ static void process_msg(Bitu value)
 	FP.grRFunction12i = (prfunc12i)fn_pt[i];
 	if(ret == 0) {
 	    LOG_MSG("Glide:Invalid return value handle for %s!", grTable[i].name);
-	    return;
+	    ret_value = G_OK; return;
 	}
 	mem_writed(ret, FP.grRFunction12i(param[1], param[2], param[3], param[4], param[5], param[6], param[7],
 			param[8], param[9], param[10], param[11], param[12]));
@@ -1963,7 +1964,7 @@ static void process_msg(Bitu value)
 	    FP.grRFunction1i1p = (prfunc1i1p)fn_pt[_grTexTextureMemRequired8];
 	    if(FP.grRFunction1i1p == NULL) {
 		LOG_MSG("Glide:Unable to get pointer to grTexTextureMemRequired");
-		return;
+		ret_value = G_OK; return;
 	    }
 
 	    texsize = FP.grRFunction1i1p(mipmap->odd_even_mask, &texinfo);
@@ -1989,7 +1990,7 @@ static void process_msg(Bitu value)
 	FP.grRFunction1i = (prfunc1i)fn_pt[i];
 	if(ret == 0) {
 	    LOG_MSG("Glide:Invalid return value handle for %s!", grTable[i].name);
-	    return;
+	    ret_value = G_OK; return;
 	}
 	mem_writed(ret, FP.grRFunction1i(param[1]));
 	ret_value = G_OK;
@@ -2000,7 +2001,7 @@ static void process_msg(Bitu value)
 	FP.grRFunction4 = (prfunc4)fn_pt[i];
 	if(ret == 0) {
 	    LOG_MSG("Glide:Invalid return value handle for %s!", grTable[i].name);
-	    return;
+	    ret_value = G_OK; return;
 	}
 	mem_writed(ret, FP.grRFunction4(param[1]));
 	ret_value = G_OK;
@@ -2011,7 +2012,7 @@ static void process_msg(Bitu value)
 	FP.grRFunction1i = (prfunc1i)fn_pt[i];
 	if(ret == 0) {
 	    LOG_MSG("Glide:Invalid return value handle for %s!", grTable[i].name);
-	    return;
+	    ret_value = G_OK; return;
 	}
 	mem_writed(ret, FP.grRFunction1i(param[1]));
 	ret_value = G_OK;
@@ -2102,4 +2103,5 @@ static void process_msg(Bitu value)
 	break;
 
     }	/* switch */
+    ret_value = G_OK;
 }	/* process_msg() */
