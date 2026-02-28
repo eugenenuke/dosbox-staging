@@ -53,10 +53,6 @@ public:
 	void writew(PhysPt addr,Bitu val);
 	Bitu readd(PhysPt addr);
 	void writed(PhysPt addr,Bitu val);
-
-	void Voodoo_PCI_SetLFB(Bitu val) {
-		// stub
-	}
 };
 
 

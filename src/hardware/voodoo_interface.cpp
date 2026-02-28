@@ -37,10 +37,6 @@ static voodoo_draw vdraw;
 
 Voodoo_PageHandler * voodoo_pagehandler;
 
-void VOODOO_PCI_SetLFB(Bitu val) {
-	voodoo_pagehandler->Voodoo_PCI_SetLFB(val);
-}
-
 
 Bitu Voodoo_PageHandler::readb(PhysPt addr) {
 //	LOG_MSG("voodoo readb at %x",addr);
