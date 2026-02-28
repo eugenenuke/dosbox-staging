@@ -1521,22 +1521,23 @@ static void process_msg(Bitu value)
 #define WRAPPER_FLAG_ANNOTATE               (0x10)
 #define WRAPPER_FLAG_FRAMEBUFFER_SRGB       (0x20)
             flags =
-                (GFX_IsFullscreen()? 0:WRAPPER_FLAG_WINDOWED) |
+                WRAPPER_FLAG_WINDOWED |
                 (VOODOO_Stat()? WRAPPER_FLAG_ANNOTATE:0) |
                 (VOODOO_MSAA() << 2) |
                 (VOODOO_SRGB()? WRAPPER_FLAG_FRAMEBUFFER_SRGB:0);
-	    LOG_MSG("Glide:grSstWinOpen: guest_res=%dx%d, flags=0x%x", (int)glide.width, (int)glide.height, (unsigned int)flags);
             
             float win_r;
             Bitu win_w = GFX_ScaleWidth(win_r);
-            if (win_r > 0) {
-                win_w /= win_r;
-                if (win_w > glide.width) {
-                    win_width = win_w;
-                    float r = (1.f * glide.height / glide.width);
-                    win_height = win_width * r;
+            if (win_w > glide.width) {
+                win_width = win_w;
+                if (win_r > 0) {
+                    win_height = (Bitu)(win_w / win_r);
+                } else {
+                    win_height = (Bitu)(win_w * glide.height / glide.width);
                 }
             }
+            LOG_MSG("Glide:grSstWinOpen: guest_res=%dx%d, win_res=%dx%d, flags=0x%x", 
+                (int)glide.width, (int)glide.height, (int)win_width, (int)win_height, (unsigned int)flags);
             
             glide.swap_fps = VOODOO_FpsLimit();
             conf_glide2x(flags, win_width);

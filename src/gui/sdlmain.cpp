@@ -3289,7 +3289,10 @@ void GFX_SwitchFullscreenNoReset(void) { GFX_SwitchFullScreen(); }
 void GFX_RestoreMode(void) { }
 void GFX_UpdateSDLCaptureState(void) { }
 void GFX_TearDown(void) { }
-Bitu GFX_ScaleWidth(float &r) { return (Bitu)(sdl.draw.width * r); }
+Bitu GFX_ScaleWidth(float &r) { 
+	r = (float)sdl.draw.scalex; 
+	return (Bitu)sdl.draw.width; 
+}
 
 SDL_Surface* SDL_SetVideoMode_Wrap(int width, int height, int bpp, uint32_t flags) {
 	if (!sdl.window) return NULL;
