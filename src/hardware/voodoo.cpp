@@ -49,9 +49,11 @@ private:
 public:
 	VOODOO(Section* configuration):Module_base(configuration){
 		emulation_type=-1;
+		LOG_MSG("VOODOO: Initializing...");
 
 		Section_prop * section=static_cast<Section_prop *>(configuration);
 		std::string voodoo_type_str(section->Get_string("voodoo"));
+		LOG_MSG("VOODOO: voodoo_type_str = %s", voodoo_type_str.c_str());
 		if (voodoo_type_str=="false") {
 			emulation_type=0;
 		} else if (voodoo_type_str=="software") {

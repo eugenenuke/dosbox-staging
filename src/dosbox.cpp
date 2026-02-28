@@ -564,6 +564,30 @@ void DOSBOX_Init(void) {
 	Pstring->Set_help("Enable voodoo card emulation: true,software,opengl,auto,false.\n"
 		"When software or opengl is specified, it will be used regardless of guest glide library.\n"
 		"When auto is specified, software emulation will be used unless guest glide library is used.");
+
+	const char* voodoo_memory[] = {
+		"standard",
+		"max",
+		0
+	};
+	Pstring = secprop->Add_string("voodoomem",Property::Changeable::OnlyAtStart,"standard");
+	Pstring->Set_values(voodoo_memory);
+	Pstring->Set_help("Voodoo card memory: standard (4MB), max (12MB).");
+
+	Pint = secprop->Add_int("voodooscale",Property::Changeable::WhenIdle, 0);
+	Pint->Set_help("Voodoo card scaling: 0 (no scaling), 1 (scale to output resolution).");
+
+	Pint = secprop->Add_int("voodoofps",Property::Changeable::WhenIdle, 0);
+	Pint->Set_help("Voodoo card FPS limit: 0 (no limit).");
+
+	Pint = secprop->Add_int("voodoomsaa",Property::Changeable::WhenIdle, 0);
+	Pint->Set_help("Voodoo card MSAA: 0 (no MSAA).");
+
+	Pbool = secprop->Add_bool("voodoosrgb",Property::Changeable::WhenIdle, false);
+	Pbool->Set_help("Enable Voodoo card sRGB.");
+
+	Pbool = secprop->Add_bool("voodoostat",Property::Changeable::WhenIdle, false);
+	Pbool->Set_help("Enable Voodoo card stats display.");
 #endif
 
 	secprop=control->AddSection_prop("glide",&GLIDE_Init,true);
