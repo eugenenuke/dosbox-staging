@@ -1526,16 +1526,13 @@ static void process_msg(Bitu value)
                 (VOODOO_MSAA() << 2) |
                 (VOODOO_SRGB()? WRAPPER_FLAG_FRAMEBUFFER_SRGB:0);
             
-            float win_r;
-            Bitu win_w = GFX_ScaleWidth(win_r);
-            if (win_w > glide.width) {
-                win_width = win_w;
-                if (win_r > 0) {
-                    win_height = (Bitu)(win_w / win_r);
-                } else {
-                    win_height = (Bitu)(win_w * glide.height / glide.width);
-                }
+            int dw, dh;
+            SDL_GL_GetDrawableSize(sdl.window, &dw, &dh);
+            if (dw > 0 && dh > 0) {
+                win_width = (Bitu)dw;
+                win_height = (Bitu)dh;
             }
+
             LOG_MSG("Glide:grSstWinOpen: guest_res=%dx%d, win_res=%dx%d, flags=0x%x", 
                 (int)glide.width, (int)glide.height, (int)win_width, (int)win_height, (unsigned int)flags);
             
