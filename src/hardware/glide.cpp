@@ -1538,8 +1538,9 @@ static void process_msg(Bitu value)
                 (int)glide.width, (int)glide.height, (int)win_width, (int)win_height, (unsigned int)flags);
             
             glide.swap_fps = VOODOO_FpsLimit();
-            // Pass 0 to the wrapper so it uses actual window size and handles aspect ratio correctly
-            conf_glide2x(flags, 0);
+            // Pass the game resolution to the wrapper so it handles clipping/LFB according to what the game expects.
+            // Aspect ratio scaling is now handled by voodoo_opengl.cpp overriding the viewport.
+            conf_glide2x(flags, glide.width);
         } while(0);
 
 	// Resize window to desired window size

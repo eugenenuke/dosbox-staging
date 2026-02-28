@@ -1860,11 +1860,31 @@ void voodoo_ogl_set_window(voodoo_state *v) {
 
 	int dw, dh;
 	SDL_GL_GetDrawableSize(sdl.window, &dw, &dh);
-	glViewport( 0, 0, dw, dh );
+    
+    // Logic from dosbox-x for aspect ratio aware viewport
+    int viewport_x = 0;
+    int viewport_y = 0;
+    int viewport_w = dw;
+    int viewport_h = dh;
+
+    float r = ((float)v->fbi.height) / (float)v->fbi.width;
+    float win_r = ((float)dh) / (float)dw;
+
+    if (win_r > r) {
+        // Window is taller than the required aspect ratio
+        viewport_h = (int)(dw * r);
+        viewport_y = (dh - viewport_h) / 2;
+    } else if (win_r < r) {
+        // Window is wider than the required aspect ratio
+        viewport_w = (int)(dh / r);
+        viewport_x = (dw - viewport_w) / 2;
+    }
+
+	glViewport( viewport_x, viewport_y, viewport_w, viewport_h );
 	if (size_changed) {
 		last_width = v->fbi.width;
 		last_height = v->fbi.height;
-		LOG_MSG("VOODOO: OpenGL: Viewport set to %dx%d (FBI: %dx%d)", dw, dh, (int)v->fbi.width, (int)v->fbi.height);
+		LOG_MSG("VOODOO: OpenGL: Viewport set to %dx%d at (%d,%d) (FBI: %dx%d)", viewport_w, viewport_h, viewport_x, viewport_y, (int)v->fbi.width, (int)v->fbi.height);
 	}
 }
 
