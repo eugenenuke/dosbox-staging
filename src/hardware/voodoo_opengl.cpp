@@ -1826,6 +1826,7 @@ void voodoo_ogl_vblank_flush(void) {
 
 
 void voodoo_ogl_set_window(voodoo_state *v) {
+        LOG_MSG("VOODOO: voodoo_ogl_set_window called");
 	VOGL_ClearBeginMode();
 
 	// 	matrix mode GL_PROJECTION assumed

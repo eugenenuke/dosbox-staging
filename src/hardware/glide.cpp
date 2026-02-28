@@ -869,6 +869,9 @@ static void process_msg(Bitu value)
 	break;
     case _grBufferClear12:
 	// void grBufferClear(GrColor_t color, GrAlpha_t alpha, FxU16 depth)
+#if LOG_GLIDE
+        LOG_MSG("Glide:grBufferClear(0x%x, %d, %d)", (int)param[1], (int)param[2], (int)param[3]);
+#endif
 	FP.grFunction3i = (pfunc3i)fn_pt[i];
 	FP.grFunction3i(param[1], param[2], param[3]);
 	break;
@@ -915,6 +918,9 @@ static void process_msg(Bitu value)
 	break;
     case _grClipWindow16:
 	// void grClipWindow(FxU32 minx, FxU32 miny, FxU32 maxx, FxU32 maxy)
+#if LOG_GLIDE
+        LOG_MSG("Glide:grClipWindow(%d, %d, %d, %d)", (int)param[1], (int)param[2], (int)param[3], (int)param[4]);
+#endif
 	FP.grFunction4i = (pfunc4i)fn_pt[i];
 	FP.grFunction4i(param[1], param[2], param[3], param[4]);
 	break;
@@ -1245,6 +1251,9 @@ static void process_msg(Bitu value)
     case _grLfbReadRegion28:
 	// FxBool grLfbReadRegion(GrBuffer_t src_buffer, FxU32 src_x, FxU32 src_y, FxU32 src_width,
 	//		FxU32 src_height, FxU32 dst_stride, void *dst_data)
+#if LOG_GLIDE
+        LOG_MSG("Glide:grLfbReadRegion(%d, %d, %d, %d, %d)", (int)param[1], (int)param[2], (int)param[3], (int)param[4], (int)param[5]);
+#endif
 	FP.grRFunction6i1p = (prfunc6i1p)fn_pt[i];
 	if(ret == 0) {
 	    LOG_MSG("Glide:Invalid return value handle for %s!", grTable[i].name);
@@ -1290,6 +1299,9 @@ static void process_msg(Bitu value)
     case _grLfbWriteRegion32:
 	// FxBool grLfbWriteRegion(GrBuffer_t dst_buffer, FxU32 dst_x, FxU32 dst_y,
 	//	GrLfbSrcFmt_t src_format, FxU32 src_width, FxU32 src_height, FxU32 src_stride, void *src_data)
+#if LOG_GLIDE
+        LOG_MSG("Glide:grLfbWriteRegion(%d, %d, %d, %d, %d)", (int)param[1], (int)param[2], (int)param[3], (int)param[5], (int)param[6]);
+#endif
 	FP.grRFunction7i1p = (prfunc7i1p)fn_pt[i];
 	if(ret == 0) {
 	    LOG_MSG("Glide:Invalid return value handle for %s!", grTable[i].name);
@@ -1535,6 +1547,8 @@ static void process_msg(Bitu value)
 
             LOG_MSG("Glide: passthrough grSstWinOpen: guest_res=%dx%d, win_res=%dx%d, flags=0x%x", 
                 (int)glide.width, (int)glide.height, (int)win_width, (int)win_height, (unsigned int)flags);
+            LOG_MSG("Glide: grSstWinOpen params: res=%d ref=%d cfmt=%d org=%d bufs=%d aux=%d",
+                (int)param[2], (int)param[3], (int)param[4], (int)param[5], (int)param[6], (int)param[7]);
             
             glide.swap_fps = VOODOO_FpsLimit();
             // Pass 0 to the wrapper so it detects actual window size and handles aspect ratio.
