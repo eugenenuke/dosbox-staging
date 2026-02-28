@@ -27,6 +27,7 @@
 #include "control.h"
 #include "drives.h"
 #include "shell.h"
+#include "voodoo_emu.h"
 
 #include <iomanip>
 #include <sstream>
@@ -48,6 +49,7 @@ struct SDL_Block {
 	} desktop;
 };
 extern SDL_Block sdl;
+extern voodoo_state *v;
 
 #if defined (WIN32)
 #include <windows.h>
@@ -1420,6 +1422,13 @@ static void process_msg(Bitu value)
 	glide.width = (Bit16u)param[8];
 	glide.height = (Bit16u)param[9];
 	GrOriginLocation = param[5];
+
+	// Update hardware dimensions to match Glide
+	if (v) {
+	    v->fbi.width = glide.width;
+	    v->fbi.height = glide.height;
+	    v->ogl_dimchange = true;
+	}
 
 	glide.lfb_pagehandler->SetLinPt(mem_readd(param[10]));
         if (glide.swap_fps)

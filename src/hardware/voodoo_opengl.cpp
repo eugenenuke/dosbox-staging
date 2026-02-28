@@ -23,9 +23,11 @@
 
 #include "dosbox.h"
 #include "video.h"
+#include "mem.h"
 
 #include "voodoo_emu.h"
 #include "voodoo_opengl.h"
+#include "glide.h"
 
 
 #if C_OPENGL
@@ -1099,6 +1101,12 @@ void ogl_shaders(const poly_extra_data *extra) {
 
 void voodoo_ogl_draw_triangle(poly_extra_data *extra) {
 	voodoo_state *v=extra->state;
+
+	if (v->ogl_dimchange) {
+		v->ogl_dimchange = false;
+		voodoo_ogl_set_window(v);
+	}
+
 	ogl_texture_data td[2];
 	ogl_vertex_data vd[3];
 
@@ -1754,13 +1762,14 @@ void voodoo_ogl_set_window(voodoo_state *v) {
 	// 	matrix mode GL_PROJECTION assumed
 	bool size_changed=false;
 
-	// Check if resolution changed in registers
-	Bitu reg_width = (v->reg[fbzMode].u >> 10) & 0x3ff;
-	Bitu reg_height = (v->reg[fbzMode].u >> 20) & 0x3ff;
-	if (reg_width && reg_height && (reg_width != v->fbi.width || reg_height != v->fbi.height)) {
-		v->fbi.width = reg_width;
-		v->fbi.height = reg_height;
-		size_changed = true;
+	// Synchronize with Glide resolution if active
+	extern GLIDE_Block glide;
+	if (glide.enabled && glide.width && glide.height) {
+		if (v->fbi.width != glide.width || v->fbi.height != glide.height) {
+			v->fbi.width = glide.width;
+			v->fbi.height = glide.height;
+			size_changed = true;
+		}
 	}
 
 	if ((v->fbi.width!=last_width) || (v->fbi.height!=last_height)) size_changed=true;
