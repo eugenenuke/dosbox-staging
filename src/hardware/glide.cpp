@@ -1509,6 +1509,7 @@ static void process_msg(Bitu value)
 	    v_state->fbi.width = glide.width;
 	    v_state->fbi.height = glide.height;
 	    v_state->ogl_dimchange = true;
+            voodoo_ogl_set_window(v_state);
 	} else {
             LOG_MSG("Glide: Warning: voodoo_state is NULL during grSstWinOpen!");
         }

@@ -41,6 +41,7 @@ void voodoo_leave(void);
 void voodoo_activate(void);
 void voodoo_update_dimensions(void);
 void voodoo_set_window(void);
+void voodoo_ogl_set_window(voodoo_state *v);
 
 void voodoo_vblank_flush(void);
 void voodoo_swap_buffers(voodoo_state *v);
