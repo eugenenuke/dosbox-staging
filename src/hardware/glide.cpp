@@ -33,6 +33,12 @@
 using namespace std;
 
 #include "SDL.h"
+#if defined(LINUX) && !defined(SDL_VIDEO_DRIVER_X11)
+#define SDL_VIDEO_DRIVER_X11 1
+#endif
+#if defined(WIN32) && !defined(SDL_VIDEO_DRIVER_WINDOWS)
+#define SDL_VIDEO_DRIVER_WINDOWS 1
+#endif
 #include "SDL_syswm.h"
 
 struct SDL_Block {
@@ -58,6 +64,8 @@ extern "C" BOOL WINAPI PathRemoveFileSpecA(LPSTR pszPath);
 
 extern void GFX_Stop(void);
 extern void GFX_ResetScreen(void);
+extern bool GFX_IsFullscreen(void);
+extern Bitu GFX_ScaleWidth(float &);
 extern const char* RunningProgram;
 
 static float int_to_float(const Bit32u i)
@@ -187,12 +195,12 @@ static void statWMInfo(void)
             case SDL_SYSWM_X11:
                 hwnd = (HostPt)(uintptr_t)wmi.info.x11.window;
                 break;
-#if defined(SDL_VIDEO_DRIVER_WINDOWS) || defined(WIN32)
+#if defined(SDL_VIDEO_DRIVER_WINDOWS)
             case SDL_SYSWM_WINDOWS:
                 hwnd = (HostPt)wmi.info.win.window;
                 break;
 #endif
-#if defined(SDL_VIDEO_DRIVER_COCOA) || defined(MACOSX)
+#if defined(SDL_VIDEO_DRIVER_COCOA)
             case SDL_SYSWM_COCOA:
                 hwnd = (HostPt)wmi.info.cocoa.window;
                 break;
@@ -1381,7 +1389,7 @@ static void process_msg(Bitu value)
 	    GLIDE_DisableScreen();
 	}
 	break;
-    case _grSstWinOpen28:
+    case _grSstWinOpen28: {
 	// FxBool grSstWinOpen(FxU32 hwnd, GrScreenResolution_t res, GrScreenRefresh_t ref,
 	//	GrColorFormat_t cformat, GrOriginLocation_t org_loc, int num_buffers, int num_aux_buffers)
 	FP.grRFunction1p6i = (prfunc1p6i)fn_pt[i];
@@ -1416,6 +1424,10 @@ static void process_msg(Bitu value)
 	LOG_MSG("Glide:Resolution:%dx%d, LFB at 0x%x (physical) / 0x%x (linear)",
 		(int)glide.width, (int)glide.height, (unsigned int)glide.lfb_pagehandler->GetPhysPt(), (unsigned int)glide.lfb_pagehandler->GetLinPt());
 
+        uint32_t flags = 0;
+        Bitu win_width = glide.width;
+        Bitu win_height = glide.height;
+
         do {
             Bitu GFX_ScaleWidth(float &);
             bool GFX_IsFullscreen(void);
@@ -1426,25 +1438,33 @@ static void process_msg(Bitu value)
 #define WRAPPER_FLAG_WINDOWED               (0x1)
 #define WRAPPER_FLAG_ANNOTATE               (0x10)
 #define WRAPPER_FLAG_FRAMEBUFFER_SRGB       (0x20)
-            uint32_t flags =
+            flags =
                 (GFX_IsFullscreen()? 0:WRAPPER_FLAG_WINDOWED) |
                 (VOODOO_Stat()? WRAPPER_FLAG_ANNOTATE:0) |
                 (VOODOO_MSAA() << 2) |
                 (VOODOO_SRGB()? WRAPPER_FLAG_FRAMEBUFFER_SRGB:0);
-	    LOG_MSG("Glide:grSstWinOpen: width=%d, height=%d, flags=0x%x", glide.width, glide.height, flags);
-            float win_r, r = (1.f * glide.height / glide.width);
+	    LOG_MSG("Glide:grSstWinOpen: guest_res=%dx%d, flags=0x%x", (int)glide.width, (int)glide.height, (unsigned int)flags);
+            
+            float win_r;
             Bitu win_w = GFX_ScaleWidth(win_r);
-            win_w /= win_r;
-            if (win_w > glide.width) {
-                glide.width = win_w;
-                glide.height = glide.width * r;
+            if (win_r > 0) {
+                win_w /= win_r;
+                if (win_w > glide.width) {
+                    win_width = win_w;
+                    float r = (1.f * glide.height / glide.width);
+                    win_height = win_width * r;
+                }
             }
+            
             glide.swap_fps = VOODOO_FpsLimit();
-            conf_glide2x(flags, glide.width);
+            conf_glide2x(flags, win_width);
         } while(0);
 
-	// Resize window and disable updates
-	GLIDE_ResetScreen(true);
+	// Resize window to desired window size
+	VGA_SetOverride(true);
+	GFX_Stop();
+	SDL_SetVideoMode_Wrap(win_width, win_height, 0,
+		(GFX_IsFullscreen()? SDL_WINDOW_FULLSCREEN:0));
 
 	statWMInfo();
 
@@ -1462,14 +1482,8 @@ static void process_msg(Bitu value)
 	    grSplash();
 	    glide.splash = false;
 	}
-
-	glide.lfb_pagehandler->SetLinPt(mem_readd(param[10]));
-        if (glide.swap_fps)
-            LOG_MSG("Glide:Frame rate limit [ %d FPS ]", glide.swap_fps);
-	LOG_MSG("Glide:Resolution:%dx%d, LFB at 0x%x (physical) / 0x%x (linear)",
-		glide.width, glide.height, glide.lfb_pagehandler->GetPhysPt(), glide.lfb_pagehandler->GetLinPt());
-	ret_value = G_OK;
 	break;
+    }
     case _grTexCalcMemRequired16:
 	// FxU32 grTexCalcMemRequired(GrLOD_t smallLod, GrLOD_t largeLod, GrAspectRatio_t aspect,
 	//	    GrTextureFormat_t format)
