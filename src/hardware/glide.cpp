@@ -827,6 +827,7 @@ static void process_msg(Bitu value)
             if (glide.swap_fps)
                 swap_fpslimit(glide.swap_fps);
         } while(0);
+	ret_value = G_OK;
 	break;
     case _grCheckForRoom4:
 	// void grCheckForRoom(FxI32 n)
@@ -1073,6 +1074,7 @@ static void process_msg(Bitu value)
 	    GLIDE_count[GLIDE_MAX+1], GLIDE_count[_grLfbLock24] - GLIDE_count[GLIDE_MAX+1]);
 	SDL_memset(GLIDE_count, 0, sizeof(GLIDE_count));
 #endif
+	ret_value = G_OK;
 	break;
 	}
     case _grHints8:
