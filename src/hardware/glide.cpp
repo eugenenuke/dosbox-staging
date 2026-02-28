@@ -740,6 +740,49 @@ static void grSplash(void)
 #endif
 }
 
+#include <cstddef>
+
+#include <SDL_opengl.h>
+
+static void LogGLState(const char* prefix) {
+    GLfloat mat[16];
+    GLint vp[4];
+    glGetFloatv(GL_PROJECTION_MATRIX, mat);
+    glGetIntegerv(GL_VIEWPORT, vp);
+    LOG_MSG("Glide:%s GL_PROJECTION: [%f %f %f %f | %f %f %f %f | %f %f %f %f | %f %f %f %f]",
+        prefix,
+        mat[0], mat[4], mat[8], mat[12],
+        mat[1], mat[5], mat[9], mat[13],
+        mat[2], mat[6], mat[10], mat[14],
+        mat[3], mat[7], mat[11], mat[15]);
+    LOG_MSG("Glide:%s GL_VIEWPORT: %d %d %d %d", prefix, vp[0], vp[1], vp[2], vp[3]);
+}
+
+static void LogGrVertexLayout() {
+    LOG_MSG("GrVertex offsets: x=%d y=%d z=%d r=%d g=%d b=%d ooz=%d a=%d oow=%d tmu0s=%d",
+        (int)offsetof(GrVertex, x),
+        (int)offsetof(GrVertex, y),
+        (int)offsetof(GrVertex, z),
+        (int)offsetof(GrVertex, r),
+        (int)offsetof(GrVertex, g),
+        (int)offsetof(GrVertex, b),
+        (int)offsetof(GrVertex, ooz),
+        (int)offsetof(GrVertex, a),
+        (int)offsetof(GrVertex, oow),
+        (int)offsetof(GrVertex, tmuvtx[0].sow));
+}
+
+static void LogVertexHex(const char* prefix, PhysPt addr) {
+    Bit32u data[16];
+    MEM_BlockRead(addr, data, 64);
+    LOG_MSG("Glide:%s hex: %08x %08x %08x %08x | %08x %08x %08x %08x | %08x %08x %08x %08x | %08x %08x %08x %08x",
+        prefix,
+        (unsigned int)data[0], (unsigned int)data[1], (unsigned int)data[2], (unsigned int)data[3],
+        (unsigned int)data[4], (unsigned int)data[5], (unsigned int)data[6], (unsigned int)data[7],
+        (unsigned int)data[8], (unsigned int)data[9], (unsigned int)data[10], (unsigned int)data[11],
+        (unsigned int)data[12], (unsigned int)data[13], (unsigned int)data[14], (unsigned int)data[15]);
+}
+
 static void process_msg(Bitu value)
 {
     GrLfbInfo_t   lfbinfo;
@@ -1057,6 +1100,8 @@ static void process_msg(Bitu value)
 #if LOG_GLIDE
         static int tri_count = 0;
         if (tri_count < 1) {
+            LogGLState("grDrawTriangle");
+            LogVertexHex("grDrawTriangle v0", param[1]);
             LOG_MSG("Glide:grDrawTriangle v0=(%f,%f) v1=(%f,%f) v2=(%f,%f)", 
                 vertex[0].x, vertex[0].y, vertex[1].x, vertex[1].y, vertex[2].x, vertex[2].y);
             tri_count++;
@@ -1115,6 +1160,7 @@ static void process_msg(Bitu value)
 	if(glide.enabled) break;	/* Tie Break Tennis */
 	FP.grFunction0 = (pfunc0)fn_pt[i];
 	FP.grFunction0();
+        LogGrVertexLayout();
 
 	// Enable Tomb Rider displaying shadow
 	if(!strncasecmp(RunningProgram, "Tombub", 6)) tomb = 2;
@@ -1943,9 +1989,8 @@ static void process_msg(Bitu value)
 #if LOG_GLIDE
         static int gutri_count = 0;
         if (gutri_count < 1) {
-            LOG_MSG("Glide:guDrawTriangleWithClip sizeof(GrVertex)=%d", (int)sizeof(GrVertex));
-            Bit32u *v0_raw = (Bit32u*)&vertex[0];
-            LOG_MSG("Glide:guDrawTriangleWithClip v0_hex: %08x %08x %08x %08x", v0_raw[0], v0_raw[1], v0_raw[2], v0_raw[3]);
+            LogGLState("guDrawTriangleWithClip");
+            LogVertexHex("guDrawTriangleWithClip v0", param[1]);
             LOG_MSG("Glide:guDrawTriangleWithClip v0=(%f,%f) v1=(%f,%f) v2=(%f,%f)", 
                 vertex[0].x, vertex[0].y, vertex[1].x, vertex[1].y, vertex[2].x, vertex[2].y);
             gutri_count++;
