@@ -550,9 +550,30 @@ void DOSBOX_Init(void) {
 #if defined(PCI_FUNCTIONALITY_ENABLED)
 	secprop=control->AddSection_prop("pci",&PCI_Init,false); //PCI bus
 	secprop->AddInitFunction(&VOODOO_Init,true);
+	const char* voodoo_settings[] = {
+		"false",
+		"software",
+#if C_OPENGL
+		"opengl",
+#endif
+		"auto",
+		0
+	};
+	Pstring = secprop->Add_string("voodoo",Property::Changeable::WhenIdle,"auto");
+	Pstring->Set_values(voodoo_settings);
+	Pstring->Set_help("Enable voodoo card emulation: true,software,opengl,auto,false.\n"
+		"When software or opengl is specified, it will be used regardless of guest glide library.\n"
+		"When auto is specified, software emulation will be used unless guest glide library is used.");
 #endif
 
 	secprop=control->AddSection_prop("glide",&GLIDE_Init,true);
+	Pbool = secprop->Add_bool("glide",Property::Changeable::WhenIdle,false);
+	Pbool->Set_help("Enable glide emulation: true,false.");
+	Pstring = secprop->Add_string("lfb",Property::Changeable::WhenIdle,"full_noaux");
+	Pstring->Set_help("LFB access: full,full_noaux,read,read_noaux,write,write_noaux,none.\n"
+		"OpenGlide does not support locking aux buffer, please use _noaux modes.");
+	Pbool = secprop->Add_bool("splash",Property::Changeable::WhenIdle,true);
+	Pbool->Set_help("Show 3dfx splash screen (requires 3dfxSpl2.dll).");
 
 
 	secprop=control->AddSection_prop("mixer",&MIXER_Init);
