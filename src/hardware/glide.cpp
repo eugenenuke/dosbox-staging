@@ -183,18 +183,21 @@ static void statWMInfo(void)
     SDL_SysWMinfo wmi;
     SDL_VERSION(&wmi.version);
     if(SDL_GetWindowWMInfo(sdl.window, &wmi)) {
-#if defined (WIN32)
-	hwnd = (HostPt)wmi.info.win.window;
-#elif defined (MACOSX)
-        hwnd = (HostPt)wmi.info.cocoa.window;
-#elif defined (SDL_VIDEO_DRIVER_X11)
-	hwnd = (HostPt)wmi.info.x11.window;
-#else
-        hwnd = 0;
+        switch(wmi.subsystem) {
+#if defined(SDL_VIDEO_DRIVER_X11)
+            case SDL_SYSWM_X11:     hwnd = (HostPt)wmi.info.x11.window; break;
 #endif
-	LOG_MSG("Glide:statWMInfo: hwnd = %p", (void*)hwnd);
+#if defined(SDL_VIDEO_DRIVER_WINDOWS)
+            case SDL_SYSWM_WINDOWS: hwnd = (HostPt)wmi.info.win.window; break;
+#endif
+#if defined(SDL_VIDEO_DRIVER_COCOA)
+            case SDL_SYSWM_COCOA:   hwnd = (HostPt)wmi.info.cocoa.window; break;
+#endif
+            default:                hwnd = 0; break;
+        }
+	LOG_MSG("Glide:statWMInfo: hwnd = %p (subsystem: %d)", (void*)hwnd, (int)wmi.subsystem);
     } else {
-	LOG_MSG("SDL:Error retrieving window information");
+	LOG_MSG("SDL:Error retrieving window information: %s", SDL_GetError());
     }
 }
 

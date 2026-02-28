@@ -1764,11 +1764,12 @@ void voodoo_ogl_set_window(voodoo_state *v) {
 			last_orientation = FBZMODE_Y_ORIGIN(v->reg[fbzMode].u);
 	}
 	if (size_changed) {
-                float r = (1.f * v->fbi.height) / v->fbi.width;
-                Bitu scale_w = scale_width, scale_h = scale_w * r;
-		glViewport( 0, 0, scale_w, scale_h );
+		int dw, dh;
+		SDL_GL_GetDrawableSize(sdl.window, &dw, &dh);
+		glViewport( 0, 0, dw, dh );
 		last_width = v->fbi.width;
 		last_height = v->fbi.height;
+		LOG_MSG("VOODOO: OpenGL: Viewport set to %dx%d", dw, dh);
 	}
 }
 
