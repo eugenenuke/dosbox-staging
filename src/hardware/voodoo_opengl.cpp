@@ -1850,6 +1850,7 @@ void voodoo_ogl_set_window(voodoo_state *v) {
 		size_changed=true;
 	}
 	if (size_changed || (last_orientation != (INT32)FBZMODE_Y_ORIGIN(v->reg[fbzMode].u))) {
+		glMatrixMode(GL_PROJECTION);
 		glLoadIdentity( );
 		if (FBZMODE_Y_ORIGIN(v->reg[fbzMode].u))
 			glOrtho( 0, v->fbi.width, 0, v->fbi.height, 0.0f, -1.0f );
@@ -1857,6 +1858,7 @@ void voodoo_ogl_set_window(voodoo_state *v) {
 			glOrtho( 0, v->fbi.width, v->fbi.height, 0, 0.0f, -1.0f );
 		if (last_orientation != (INT32)FBZMODE_Y_ORIGIN(v->reg[fbzMode].u))
 			last_orientation = FBZMODE_Y_ORIGIN(v->reg[fbzMode].u);
+		glMatrixMode(GL_MODELVIEW);
 	}
 
 	int dw, dh;

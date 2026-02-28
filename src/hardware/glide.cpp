@@ -1936,6 +1936,14 @@ static void process_msg(Bitu value)
 
 	MEM_BlockRead(param[2], &vertex[1], sizeof(GrVertex));
 	MEM_BlockRead(param[3], &vertex[2], sizeof(GrVertex));
+#if LOG_GLIDE
+        static int gutri_count = 0;
+        if (gutri_count < 1) {
+            LOG_MSG("Glide:guDrawTriangleWithClip v0=(%f,%f) v1=(%f,%f) v2=(%f,%f)", 
+                vertex[0].x, vertex[0].y, vertex[1].x, vertex[1].y, vertex[2].x, vertex[2].y);
+            gutri_count++;
+        }
+#endif
 	FP.grFunction3p(&vertex[0], &vertex[1], &vertex[2]);
 	break;
 /*
