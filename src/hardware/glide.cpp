@@ -37,6 +37,9 @@ using namespace std;
 
 struct SDL_Block {
 	SDL_Window *window;
+	struct {
+		bool fullscreen;
+	} desktop;
 };
 extern SDL_Block sdl;
 
@@ -509,6 +512,7 @@ public:
 
 	autoexecline.Install(temp.str());
 	glide.splash = section->Get_bool("splash");
+	glide.fullscreen = &sdl.desktop.fullscreen;
 
 	if(ovl_data) {
 	    VFILE_Register("GLIDE2X.OVL", ovl_data, ovl_size);
@@ -1399,6 +1403,7 @@ static void process_msg(Bitu value)
 
         do {
             Bitu GFX_ScaleWidth(float &);
+            bool GFX_IsFullscreen(void);
             Bitu VOODOO_FpsLimit(void);
             Bitu VOODOO_MSAA(void);
             bool VOODOO_SRGB(void);
@@ -1407,10 +1412,11 @@ static void process_msg(Bitu value)
 #define WRAPPER_FLAG_ANNOTATE               (0x10)
 #define WRAPPER_FLAG_FRAMEBUFFER_SRGB       (0x20)
             uint32_t flags =
-                (glide.fullscreen[0]? 0:WRAPPER_FLAG_WINDOWED) |
+                (GFX_IsFullscreen()? 0:WRAPPER_FLAG_WINDOWED) |
                 (VOODOO_Stat()? WRAPPER_FLAG_ANNOTATE:0) |
                 (VOODOO_MSAA() << 2) |
                 (VOODOO_SRGB()? WRAPPER_FLAG_FRAMEBUFFER_SRGB:0);
+	    LOG_MSG("Glide:grSstWinOpen: width=%d, height=%d, flags=0x%x", glide.width, glide.height, flags);
             float win_r, r = (1.f * glide.height / glide.width);
             Bitu win_w = GFX_ScaleWidth(win_r);
             win_w /= win_r;
