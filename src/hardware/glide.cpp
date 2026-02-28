@@ -149,7 +149,7 @@ static float int_to_float(const Bit32u i)
 #define G_FAIL	0
 
 // Print debug messages
-#define LOG_GLIDE 0
+#define LOG_GLIDE 1
 
 void VFILE_Remove(const char *name);
 static void process_msg(Bitu);
@@ -829,6 +829,14 @@ static void process_msg(Bitu value)
 
 	MEM_BlockRead(param[2], &vertex[1], sizeof(GrVertex));
 	MEM_BlockRead(param[3], &vertex[2], sizeof(GrVertex));
+#if LOG_GLIDE
+        static int aatri_count = 0;
+        if (aatri_count < 1) {
+            LOG_MSG("Glide:grAADrawTriangle v0=(%f,%f) v1=(%f,%f) v2=(%f,%f)", 
+                vertex[0].x, vertex[0].y, vertex[1].x, vertex[1].y, vertex[2].x, vertex[2].y);
+            aatri_count++;
+        }
+#endif
 	FP.grFunction3p3i(&vertex[0], &vertex[1], &vertex[2], param[4], param[5], param[6]);
 	break;
     case _grAlphaBlendFunction16:
@@ -1046,6 +1054,14 @@ static void process_msg(Bitu value)
 
 	MEM_BlockRead(param[2], &vertex[1], sizeof(GrVertex));
 	MEM_BlockRead(param[3], &vertex[2], sizeof(GrVertex));
+#if LOG_GLIDE
+        static int tri_count = 0;
+        if (tri_count < 1) {
+            LOG_MSG("Glide:grDrawTriangle v0=(%f,%f) v1=(%f,%f) v2=(%f,%f)", 
+                vertex[0].x, vertex[0].y, vertex[1].x, vertex[1].y, vertex[2].x, vertex[2].y);
+            tri_count++;
+        }
+#endif
 	FP.grFunction3p(&vertex[0], &vertex[1], &vertex[2]);
 	break;
 /*
@@ -1361,6 +1377,9 @@ static void process_msg(Bitu value)
 	break;
     case _grSstOrigin4:
 	// void grSstOrigin(GrOriginLocation_t origin)
+#if LOG_GLIDE
+        LOG_MSG("Glide:grSstOrigin(%d)", (int)param[1]);
+#endif
 	FP.grFunction1i = (pfunc1i)fn_pt[i];
 	FP.grFunction1i(param[1]);
 	GrOriginLocation = param[1];
