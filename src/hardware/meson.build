@@ -75,6 +75,7 @@ libhardware_sources = files(
     'virtualbox.cpp',
     'vmware.cpp',
     'voodoo.cpp',
+    'glide.cpp',
 )
 
 libhardware = static_library(

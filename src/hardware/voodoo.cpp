@@ -7880,8 +7880,11 @@ struct PCI_SSTDevice : public PCI_Device {
 	}
 };
 
+void GLIDE_ShutDown();
+
 static void voodoo_shutdown()
 {
+	GLIDE_ShutDown();
 	if (!v) {
 		return;
 	}
@@ -7928,9 +7931,13 @@ static void voodoo_destroy(Section* /*sec*/) {
 	voodoo_shutdown();
 }
 
+void GLIDE_Init();
+
 static void voodoo_init(Section* sec)
 {
 	auto* section = dynamic_cast<Section_prop*>(sec);
+
+	GLIDE_Init();
 
 	// Only activate on SVGA machines and when requested
 	if (machine != MCH_VGA || svgaCard == SVGA_None || !section ||
@@ -7978,6 +7985,11 @@ static void init_voodoo_dosbox_settings(Section_prop& secprop)
 	        "variants, but for some you need to provide a suitable 'GLIDE2X.OVL' version.\n"
 	        "A small number of games integrate the Glide driver into their code, so they\n"
 	        "don't need 'GLIDE2X.OVL'.");
+
+	bool_prop = secprop.Add_bool("glide", WhenIdle, false);
+	bool_prop->Set_help(
+	        "Enable Glide emulation (Glide API passthrough to the host).\n"
+	        "Requires a Glide wrapper - glide2x.dll (Windows), libglide2x.so (Linux), or libglide2x.dylib (macOS).");
 
 	auto* str_prop = secprop.Add_string("voodoo_memsize", OnlyAtStart, "4");
 	str_prop->Set_values({"4", "12"});

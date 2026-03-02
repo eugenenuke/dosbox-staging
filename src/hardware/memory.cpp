@@ -217,11 +217,29 @@ void MEM_BlockRead(PhysPt pt,void * data,Bitu size) {
 	}
 }
 
+void MEM_BlockRead32(PhysPt pt,void * data,Bitu size) {
+	uint32_t * write=(uint32_t *)data;
+	while (size>=4) {
+		*write++=mem_readd_inline(pt);
+		pt+=4;
+		size-=4;
+	}
+}
+
 void MEM_BlockWrite(PhysPt pt, const void *data, size_t size)
 {
 	const uint8_t *read = static_cast<const uint8_t *>(data);
 	while (size--) {
 		mem_writeb_inline(pt++,*read++);
+	}
+}
+
+void MEM_BlockWrite32(PhysPt pt,void * data,Bitu size) {
+	uint32_t * read=(uint32_t *)data;
+	while (size>=4) {
+		mem_writed_inline(pt,*read++);
+		pt+=4;
+		size-=4;
 	}
 }
 

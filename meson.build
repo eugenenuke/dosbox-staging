@@ -898,6 +898,7 @@ summary(
     png_dep.type_name() == 'internal' ? 'built-in' : 'system library',
 )
 
+
 # SpeexDSP
 # ~~~~~~~~
 # Default to the system library
@@ -1240,6 +1241,8 @@ endif
 incdir = [
     include_directories('include', '.'),
     include_directories('src/libs', is_system: true),
+    include_directories('src/gui'),
+    include_directories('../qemu-xtra/openglide'),
 ]
 
 
@@ -1288,6 +1291,7 @@ if conf_data.get('C_MANYMOUSE') != 0
 endif
 
 # internal libs
+subdir('src/builtin')
 subdir('src/capture')
 subdir('src/cpu')
 subdir('src/dos')

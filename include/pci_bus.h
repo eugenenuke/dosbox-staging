@@ -119,6 +119,8 @@ void PCI_AddDevice(PCI_Device* dev);
 
 void PCI_RemoveDevice(uint16_t vendor_id, uint16_t device_id);
 
+void PCI_AddSVGAS3_Device();
+
 uint8_t PCI_GetCFGData(Bits pci_id, Bits pci_subfunction, uint8_t regnum);
 
 #endif

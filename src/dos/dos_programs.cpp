@@ -58,6 +58,7 @@ std::unique_ptr<Program> MIXER_ProgramCreate();
 std::unique_ptr<Program> SHELL_ProgramCreate();
 
 void REELMAGIC_MaybeCreateFmpdrvExecutable();
+void GLIDE_Register();
 
 void VFILE_GetPathZDrive(std::string& path, const std::string& dirname);
 void VFILE_RegisterZDrive(const std_fs::path& z_drive_path);
@@ -103,6 +104,7 @@ void Add_VFiles(const bool add_autoexec)
 	PROGRAMS_MakeFile("TREE.COM", ProgramCreate<TREE>);
 
 	REELMAGIC_MaybeCreateFmpdrvExecutable();
+	GLIDE_Register();
 
 	if (add_autoexec) {
 		AUTOEXEC_RegisterFile();

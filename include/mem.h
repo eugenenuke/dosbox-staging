@@ -165,6 +165,8 @@ static inline uint64_t phys_readq(PhysPt addr)
 
 void MEM_BlockWrite(PhysPt pt, const void *data, size_t size);
 void MEM_BlockRead(PhysPt pt, void *data, Bitu size);
+void MEM_BlockWrite32(PhysPt pt, void *data, Bitu size);
+void MEM_BlockRead32(PhysPt pt, void *data, Bitu size);
 void MEM_BlockCopy(PhysPt dest, PhysPt src, Bitu size);
 void MEM_StrCopy(PhysPt pt, char *data, Bitu size);
 
