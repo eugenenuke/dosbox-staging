@@ -85,3 +85,32 @@ tools/unlock_the_magic_mpeg_ps.exe
 obj-*.-linux-gnu
 debian
 
+# Autotools artifacts
+Makefile
+Makefile.in
+aclocal.m4
+autom4te.cache/
+config.guess
+config.h
+config.h.in
+config.log
+config.status
+config.sub
+configure
+depcomp
+install-sh
+missing
+stamp-h1
+.deps/
+
+# Object and library files
+*.o
+*.a
+*.so
+*.so.*
+
+# Other artifacts
+visualc_net/
+src/dosbox
+.wraplock
+
