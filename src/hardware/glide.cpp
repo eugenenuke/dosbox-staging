@@ -85,7 +85,7 @@ static uint32_t param[20];
 
 // Pointer to return value
 static PhysPt ret;
-static uint16_t ret_value;
+static uint32_t ret_value;
 
 // Temporary texture buffer
 static uint32_t texsize=0;
@@ -110,18 +110,21 @@ static int GLIDE_count[GLIDE_MAX+2];
 static io_val_t read_gl_wrapped(io_port_t port, io_width_t width)
 {
     (void)port;
-    (void)width;
-    io_val_t r=ret_value;
+    io_val_t r = ret_value;
 #if LOG_GLIDE
     if(ret_value == G_OK)
 	LOG_MSG("Glide:Port read. Return address: 0x%x, value: %d", ret, mem_readd(ret));
     else if(ret_value == G_FAIL)
 	LOG_MSG("Glide:Port read. Return address: 0x%x, value: %d. Writing G_FAIL to port", ret, mem_readd(ret));
     else
-	LOG_MSG("Glide:Port read. Returning %hu", ret_value);
+	LOG_MSG("Glide:Port read. Returning %u", ret_value);
 #endif
 
-    ret_value = (uint16_t)(ret_value >> 8);
+    if (width == io_width_t::byte) {
+        ret_value >>= 8;
+    } else {
+        ret_value = 0;
+    }
 
     return r;
 }
@@ -165,7 +168,9 @@ static void statWMInfo(void)
 # if defined (WIN32)
         hwnd = (HostPt)wmi.info.win.window;
 # elif defined (__linux__)
-        hwnd = (HostPt)wmi.info.x11.window;
+        if (wmi.subsystem == SDL_SYSWM_X11) {
+            hwnd = (HostPt)wmi.info.x11.window;
+        }
 # endif
     } else
         LOG_MSG("SDL:Error retrieving window information");
@@ -202,6 +207,7 @@ public:
 
 	flags=PFLAG_READABLE|PFLAG_WRITEABLE|PFLAG_NOCODE;
 	PAGING_UnlinkPages(base_addr[0]>>12, GLIDE_PAGES);
+	MEM_SetPageHandler(base_addr[0] >> 12, GLIDE_PAGES, this);
 #if LOG_GLIDE
 	LOG_MSG("Glide:GLIDE_PageHandler installed at 0x%x", base_addr[0]);
 #endif
@@ -246,52 +252,42 @@ public:
     }
 
     uint8_t readb(PhysPt addr) override {
-//	LOG_MSG("Glide:Read from 0x%p", LFB_getAddr(addr));
 	return *(uint8_t *)(LFB_getAddr(addr));
     }
 
     uint16_t readw(PhysPt addr) override {
-//	LOG_MSG("Glide:Read from 0x%p", LFB_getAddr(addr));
 	return *(uint16_t *)(LFB_getAddr(addr));
     }
 
     uint32_t readd(PhysPt addr) override {
-//	LOG_MSG("Glide:Read from 0x%p", LFB_getAddr(addr));
 	return *(uint32_t *)(LFB_getAddr(addr));
     }
 
     void writeb(PhysPt addr,uint8_t val) override {
-//	LOG_MSG("Glide:Write to 0x%p", LFB_getAddr(addr));
 	*(uint8_t *)(LFB_getAddr(addr))=(uint8_t)val;
     }
 
     void writew(PhysPt addr,uint16_t val) override {
-//	LOG_MSG("Glide:Write to 0x%p", LFB_getAddr(addr));
 	*(uint16_t *)(LFB_getAddr(addr))=(uint16_t)val;
     }
 
     void writed(PhysPt addr,uint32_t val) override {
-//	LOG_MSG("Glide:Write to 0x%p", LFB_getAddr(addr));
 	*(uint32_t *)(LFB_getAddr(addr))=(uint32_t)val;
     }
 
     HostPt GetHostReadPt(Bitu phys_page) override {
 	Bitu buffer = (((phys_page<<12) - base_addr[0])>>12)>>GLIDE_PAGE_BITS;
 #if LOG_GLIDE
-	// This only makes sense if full lfb access is used...
 	if (!locked[buffer]) LOG_MSG("Glide:Read from unlocked LFB at: 0x%x", (unsigned int)phys_page<<12);
 #endif
-//	LOG_MSG("Glide:GetHostReadPt called with %d, returning 0x%p", phys_page, LFB_getAddr((phys_page*MEM_PAGESIZE)));
 	return lfb_addr[buffer]+((Bitu)phys_page<<12);
     }
 
     HostPt GetHostWritePt(Bitu phys_page) override {
 	Bitu buffer = (((phys_page<<12) - base_addr[0])>>12)>>GLIDE_PAGE_BITS;
 #if LOG_GLIDE
-	// This only makes sense if full lfb access is used...
 	if (!locked[buffer]) LOG_MSG("Glide:Write to unlocked LFB at: 0x%x", (unsigned int)phys_page<<12);
 #endif
-//	LOG_MSG("Glide:GetHostWritePt called with %d, returning 0x%p", phys_page, LFB_getAddr((phys_page*MEM_PAGESIZE)));
 	return lfb_addr[buffer]+((Bitu)phys_page<<12);
     }
 
@@ -445,6 +441,11 @@ void GLIDE_ResetScreen(bool update)
 	VGA_SetOverride(true);
 	GFX_Stop();
 
+    int w, h, dw, dh;
+    SDL_GetWindowSize(sdl.window, &w, &h);
+    SDL_GL_GetDrawableSize(sdl.window, &dw, &dh);
+    LOG_F(INFO, "Glide: Window size: %dx%d, Drawable size: %dx%d, Glide res: %dx%d", w, h, dw, dh, glide.width, glide.height);
+
 	// OpenGlide will resize the window on its own (using SDL)
 	if(glide.width && (
 #ifdef WIN32
@@ -454,7 +455,10 @@ void GLIDE_ResetScreen(bool update)
 #endif
 	// and resize when mapper and/or GUI finish
 	  update)) {
-        SDL_SetWindowSize(sdl.window, glide.width, glide.height);
+        // Only resize if NOT in fullscreen to avoid zooming issues on High DPI
+        if (!(SDL_GetWindowFlags(sdl.window) & (SDL_WINDOW_FULLSCREEN | SDL_WINDOW_FULLSCREEN_DESKTOP))) {
+            SDL_SetWindowSize(sdl.window, glide.width, glide.height);
+        }
 	}
 }
 
@@ -481,21 +485,16 @@ static bool GetFileName(char * filename)
     // Get full path
     if(!DOS_MakeName(filename,fullname,&drive)) return false;
 
-#if LOG_GLIDE
-    LOG_MSG("Glide:Fullname: %s", fullname);
-#endif
-
     // Get real system path
     auto ldp = std::dynamic_pointer_cast<localDrive>(Drives[drive]);
     if(ldp == NULL) return false;
 
     string host_filename = ldp->MapDosToHostFilename(fullname);
+    if (host_filename.empty()) return false;
+
     strncpy(filename, host_filename.c_str(), 511);
     filename[511] = '\0';
 
-#if LOG_GLIDE
-    LOG_MSG("Glide:System path: %s", filename);
-#endif
     return true;
 }
 
