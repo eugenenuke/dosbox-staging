@@ -44,6 +44,10 @@ uint16_t MEM_GetMaxMegabytes();
 bool MEM_A20_Enabled();
 void MEM_A20_Enable(bool enable);
 
+class PageHandler;
+void MEM_SetLFB(Bitu page, Bitu pages, PageHandler *handler, PageHandler *mmiohandler);
+void MEM_SetGlideLFB(Bitu page, Bitu pages, PageHandler *handler);
+
 /* Memory management / EMS mapping */
 HostPt MEM_GetBlockPage();
 uint32_t MEM_FreeTotal();                      // free 4 KB pages

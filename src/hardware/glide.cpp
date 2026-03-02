@@ -207,7 +207,7 @@ public:
 
 	flags=PFLAG_READABLE|PFLAG_WRITEABLE|PFLAG_NOCODE;
 	PAGING_UnlinkPages(base_addr[0]>>12, GLIDE_PAGES);
-	MEM_SetPageHandler(base_addr[0] >> 12, GLIDE_PAGES, this);
+	MEM_SetGlideLFB(base_addr[0] >> 12, GLIDE_PAGES, this);
 #if LOG_GLIDE
 	LOG_MSG("Glide:GLIDE_PageHandler installed at 0x%x", base_addr[0]);
 #endif
@@ -218,6 +218,7 @@ public:
 	LOG_MSG("Glide:Resetting page handler at 0x%x", base_addr[0]);
 #endif
 	PAGING_UnlinkPages(base_addr[0]>>12, GLIDE_PAGES);
+	MEM_SetGlideLFB(base_addr[0] >> 12, GLIDE_PAGES, nullptr);
     }
 
     void SetLFBAddr(HostPt addr, Bitu buffer) {
@@ -240,10 +241,14 @@ public:
     }
 
     void SetLinPt(PhysPt linaddr) {
-	for(int i = 0; i < GLIDE_BUFFERS; i++) {
-	    lin_addr[i] = linaddr;
-	    linaddr += ((1<<GLIDE_PAGE_BITS)<<12);
-	}
+        if (linaddr == 0) return;
+        for (int i = 0; i < GLIDE_BUFFERS; i++) {
+            lin_addr[i] = linaddr;
+            for (Bitu p = 0; p < (1 << GLIDE_PAGE_BITS); p++) {
+                PAGING_LinkPage((linaddr >> 12) + p, (base_addr[i] >> 12) + p);
+            }
+            linaddr += ((1 << GLIDE_PAGE_BITS) << 12);
+        }
     }
 
     PhysPt GetLinPt(Bitu buffer = 0) {

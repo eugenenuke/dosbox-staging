@@ -55,6 +55,12 @@ static struct MemoryBlock {
 		PageHandler* mmiohandler = {};
 	} lfb = {};
 	struct {
+		Bitu start_page = 0;
+		Bitu end_page   = 0;
+		Bitu pages      = 0;
+		PageHandler* handler = {};
+	} glide_lfb = {};
+	struct {
 		bool enabled = false;
 
 		uint8_t controlport = 0;
@@ -152,12 +158,23 @@ void MEM_SetLFB(Bitu page, Bitu pages, PageHandler *handler, PageHandler *mmioha
 	PAGING_ClearTLB();
 }
 
+void MEM_SetGlideLFB(Bitu page, Bitu pages, PageHandler* handler) {
+	memory.glide_lfb.handler = handler;
+	memory.glide_lfb.start_page = page;
+	memory.glide_lfb.end_page = page + pages;
+	memory.glide_lfb.pages = pages;
+	PAGING_ClearTLB();
+}
+
 PageHandler * MEM_GetPageHandler(Bitu phys_page) {
 	if (phys_page < memory.pages.size()) {
 		return memory.phandlers[phys_page];
 	}
 	if (phys_page >= memory.lfb.start_page && phys_page < memory.lfb.end_page) {
 		return memory.lfb.handler;
+	}
+	if (phys_page >= memory.glide_lfb.start_page && phys_page < memory.glide_lfb.end_page) {
+		return memory.glide_lfb.handler;
 	}
 
 	constexpr uint32_t PagesIn16Mb = 16 * PagesPerMegabyte;
