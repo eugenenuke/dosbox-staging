@@ -38,6 +38,11 @@ using namespace std;
 
 #include "SDL.h"
 #include "SDL_syswm.h"
+#include "SDL_opengl.h"
+#ifndef GL_GLEXT_PROTOTYPES
+#define GL_GLEXT_PROTOTYPES 1
+#endif
+#include <GL/gl.h>
 
 #if defined (WIN32)
 #include <windows.h>
@@ -450,6 +455,16 @@ void GLIDE_ResetScreen(bool update)
     SDL_GetWindowSize(sdl.window, &w, &h);
     SDL_GL_GetDrawableSize(sdl.window, &dw, &dh);
     LOG_F(INFO, "Glide: Window size: %dx%d, Drawable size: %dx%d, Glide res: %dx%d", w, h, dw, dh, glide.width, glide.height);
+
+    // Reset OpenGL state before OpenGlide takes over
+    glViewport(0, 0, dw, dh);
+    glScissor(0, 0, dw, dh);
+    glDisable(GL_SCISSOR_TEST);
+
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
 
 	// OpenGlide will resize the window on its own (using SDL)
 	if(glide.width && (
