@@ -741,52 +741,8 @@ static void grSplash(void)
 }
 
 #include <cstddef>
+
 #include <SDL_opengl.h>
-
-#pragma pack(push, 1)
-struct GuestGrVertex {
-    float x, y;         // 0, 4
-    float ooz;          // 8
-    float r, g, b;      // 12, 16, 20
-    float a;            // 24
-    float oow;          // 28
-    struct {
-        float sow, tow, oow;
-    } tmuvtx[2];        // 32, 44
-};
-#pragma pack(pop)
-
-static void TranslateVertex(GrVertex& host, const GuestGrVertex& guest) {
-    host.x = guest.x;
-    host.y = guest.y;
-    host.z = 0.0f;
-    host.r = guest.r;
-    host.g = guest.g;
-    host.b = guest.b;
-    host.ooz = guest.ooz;
-    host.a = guest.a;
-    host.oow = guest.oow;
-    host.tmuvtx[0].sow = guest.tmuvtx[0].sow;
-    host.tmuvtx[0].tow = guest.tmuvtx[0].tow;
-    host.tmuvtx[0].oow = guest.tmuvtx[0].oow;
-    host.tmuvtx[1].sow = guest.tmuvtx[1].sow;
-    host.tmuvtx[1].tow = guest.tmuvtx[1].tow;
-    host.tmuvtx[1].oow = guest.tmuvtx[1].oow;
-}
-
-static void ReadAndTranslateVertex(GrVertex& host, PhysPt addr) {
-    GuestGrVertex gv;
-    MEM_BlockRead(addr, &gv, sizeof(gv));
-    TranslateVertex(host, gv);
-}
-
-static void ReadAndTranslateVertices(GrVertex* host, PhysPt addr, int count) {
-    for (int i = 0; i < count; ++i) {
-        GuestGrVertex gv;
-        MEM_BlockRead(addr + i * sizeof(GuestGrVertex), &gv, sizeof(gv));
-        TranslateVertex(host[i], gv);
-    }
-}
 
 static void LogGLState(const char* prefix) {
     GLfloat mat[16];
@@ -874,51 +830,48 @@ static void process_msg(Bitu value)
     case _grAADrawLine8:
 	// void grAADrawLine(GrVertex *va, GrVertex *vb)
 	FP.grFunction2p = (pfunc2p)fn_pt[i];
-	ReadAndTranslateVertex(vertex[0], param[1]);
-	ReadAndTranslateVertex(vertex[1], param[2]);
+	MEM_BlockRead(param[1], &vertex[0], sizeof(GrVertex));
+
+	MEM_BlockRead(param[2], &vertex[1], sizeof(GrVertex));
 	FP.grFunction2p(&vertex[0], &vertex[1]);
 	break;
     case _grAADrawPoint4:
 	// void grAADrawPoint(GrVertex *p)
 	FP.grFunction1p = (pfunc1p)fn_pt[i];
-	ReadAndTranslateVertex(vertex[0], param[1]);
+	MEM_BlockRead(param[1], &vertex[0], sizeof(GrVertex));
+
 	FP.grFunction1p(&vertex[0]);
 	break;
     case _grAADrawPolygon12:
-    {
 	// void grAADrawPolygon(int nVerts, const int ilist[], const GrVertex vlist[])
 	FP.grFunction1i2p = (pfunc1i2p)fn_pt[i];
-	int nverts_idx = param[1];
-	MEM_BlockRead(param[2], ilist, sizeof(FxI32)*nverts_idx);
-	// Find the maximum index to know how many vertices to read
+	i = sizeof(FxI32)*param[1];
+	MEM_BlockRead(param[2], ilist, i);
+	// Find the number of vertices (?)
 	k = 0;
-	for(j = 0; j < nverts_idx; j++) {
-	    if(ilist[j] > (FxI32)k)
+	for(j = 0; j < param[1]; j++) {
+	    if(ilist[j] > k)
 		k = ilist[j];
 	}
 	k++;
-        GrVertex* translated = (GrVertex*)texmem;
-        ReadAndTranslateVertices(translated, param[3], k);
-	FP.grFunction1i2p(nverts_idx, ilist, translated);
+
+	MEM_BlockRead(param[3], ilist+i, sizeof(GrVertex)*k);
+	FP.grFunction1i2p(param[1], ilist, ilist+i);
 	break;
-    }
     case _grAADrawPolygonVertexList8:
-    {
 	// void grAADrawPolygonVertexList(int nVerts, const GrVertex vlist[])
 	FP.grFunction1i1p = (pfunc1i1p)fn_pt[i];
-        int nverts = param[1];
-        GrVertex* translated = (GrVertex*)texmem;
-        ReadAndTranslateVertices(translated, param[2], nverts);
-	FP.grFunction1i1p(nverts, translated);
+	MEM_BlockRead(param[2], texmem, sizeof(GrVertex)*param[1]);
+	FP.grFunction1i1p(param[1], texmem);
 	break;
-    }
     case _grAADrawTriangle24:
 	// void grAADrawTriangle(GrVertex *a, GrVertex *b, GrVertex *c,
 	//	FxBool antialiasAB, FxBool antialiasBC, FxBool antialiasCA)
 	FP.grFunction3p3i = (pfunc3p3i)fn_pt[i];
-	ReadAndTranslateVertex(vertex[0], param[1]);
-	ReadAndTranslateVertex(vertex[1], param[2]);
-	ReadAndTranslateVertex(vertex[2], param[3]);
+	MEM_BlockRead(param[1], &vertex[0], sizeof(GrVertex));
+
+	MEM_BlockRead(param[2], &vertex[1], sizeof(GrVertex));
+	MEM_BlockRead(param[3], &vertex[2], sizeof(GrVertex));
 #if LOG_GLIDE
         static int aatri_count = 0;
         if (aatri_count < 1) {
@@ -1081,78 +1034,69 @@ static void process_msg(Bitu value)
     case _grDrawLine8:
 	// void grDrawLine(const GrVertex *a, const GrVertex *b)
 	FP.grFunction2p = (pfunc2p)fn_pt[i];
-	ReadAndTranslateVertex(vertex[0], param[1]);
-	ReadAndTranslateVertex(vertex[1], param[2]);
+	MEM_BlockRead(param[1], &vertex[0], sizeof(GrVertex));
+
+	MEM_BlockRead(param[2], &vertex[1], sizeof(GrVertex));
 	FP.grFunction2p(&vertex[0], &vertex[1]);
 	break;
     case _grDrawPlanarPolygon12:
-    {
 	// void grDrawPlanarPolygon(int nVerts, int ilist[], const GrVertex vlist[])
 	FP.grFunction1i2p = (pfunc1i2p)fn_pt[i];
-	int nverts_idx = param[1];
-	MEM_BlockRead(param[2], ilist, sizeof(FxI32)*nverts_idx);
-	// Find the maximum index to know how many vertices to read
+	i = sizeof(FxI32)*param[1];
+	MEM_BlockRead(param[2], ilist, i);
+	// Find the number of vertices (?)
 	k = 0;
-	for(j = 0; j < nverts_idx; j++) {
-	    if(ilist[j] > (FxI32)k)
+	for(j = 0; j < param[1]; j++) {
+	    if(ilist[j] > k)
 		k = ilist[j];
 	}
 	k++;
-        GrVertex* translated = (GrVertex*)texmem;
-        ReadAndTranslateVertices(translated, param[3], k);
-	FP.grFunction1i2p(nverts_idx, ilist, translated);
+
+	MEM_BlockRead(param[3], ilist+i, sizeof(GrVertex)*k);
+	FP.grFunction1i2p(param[1], ilist, ilist+i);
 	break;
-    }
     case _grDrawPlanarPolygonVertexList8:
-    {
 	// void grDrawPlanarPolygonVertexList(int nVertices, const GrVertex vlist[])
 	FP.grFunction1i1p = (pfunc1i1p)fn_pt[i];
-        int nverts = param[1];
-        GrVertex* translated = (GrVertex*)texmem;
-        ReadAndTranslateVertices(translated, param[2], nverts);
-	FP.grFunction1i1p(nverts, translated);
+	MEM_BlockRead(param[2], texmem, sizeof(GrVertex)*param[1]);
+	FP.grFunction1i1p(param[1], texmem);
 	break;
-    }
     case _grDrawPoint4:
 	// void grDrawPoint(const GrVertex *a)
 	FP.grFunction1p = (pfunc1p)fn_pt[i];
-	ReadAndTranslateVertex(vertex[0], param[1]);
+	MEM_BlockRead(param[1], &vertex[0], sizeof(GrVertex));
+
 	FP.grFunction1p(&vertex[0]);
 	break;
     case _grDrawPolygon12:
-    {
 	// void grDrawPolygon(int nVerts, int ilist[], const GrVertex vlist[])
 	FP.grFunction1i2p = (pfunc1i2p)fn_pt[i];
-	int nverts_idx = param[1];
-	MEM_BlockRead(param[2], ilist, sizeof(FxI32)*nverts_idx);
-	// Find the maximum index to know how many vertices to read
+	i = sizeof(FxI32)*param[1];
+	MEM_BlockRead(param[2], ilist, i);
+	// Find the number of vertices (?)
 	k = 0;
-	for(j = 0; j < nverts_idx; j++) {
-	    if(ilist[j] > (FxI32)k)
+	for(j = 0; j < param[1]; j++) {
+	    if(ilist[j] > k)
 		k = ilist[j];
 	}
 	k++;
-        GrVertex* translated = (GrVertex*)texmem;
-        ReadAndTranslateVertices(translated, param[3], k);
-	FP.grFunction1i2p(nverts_idx, ilist, translated);
+
+	MEM_BlockRead(param[3], ilist+i, sizeof(GrVertex)*k);
+	FP.grFunction1i2p(param[1], ilist, ilist+i);
 	break;
-    }
     case _grDrawPolygonVertexList8:
-    {
 	// void grDrawPolygonVertexList(int nVerts, const GrVertex vlist[])
 	FP.grFunction1i1p = (pfunc1i1p)fn_pt[i];
-        int nverts = param[1];
-        GrVertex* translated = (GrVertex*)texmem;
-        ReadAndTranslateVertices(translated, param[2], nverts);
-	FP.grFunction1i1p(nverts, translated);
+	MEM_BlockRead(param[2], texmem, sizeof(GrVertex)*param[1]);
+	FP.grFunction1i1p(param[1], texmem);
 	break;
-    }
     case _grDrawTriangle12:
 	// void grDrawTriangle(const GrVertex *a, const GrVertex *b, const GrVertex *c)
 	FP.grFunction3p = (pfunc3p)fn_pt[i];
-	ReadAndTranslateVertex(vertex[0], param[1]);
-	ReadAndTranslateVertex(vertex[1], param[2]);
-	ReadAndTranslateVertex(vertex[2], param[3]);
+	MEM_BlockRead(param[1], &vertex[0], sizeof(GrVertex));
+
+	MEM_BlockRead(param[2], &vertex[1], sizeof(GrVertex));
+	MEM_BlockRead(param[3], &vertex[2], sizeof(GrVertex));
 #if LOG_GLIDE
         static int tri_count = 0;
         if (tri_count < 1) {
@@ -1635,7 +1579,6 @@ static void process_msg(Bitu value)
 	    v_state->fbi.width = glide.width;
 	    v_state->fbi.height = glide.height;
 	    v_state->ogl_dimchange = true;
-            voodoo_ogl_set_window(v_state);
 	} else {
             LOG_MSG("Glide: Warning: voodoo_state is NULL during grSstWinOpen!");
         }
@@ -2014,9 +1957,10 @@ static void process_msg(Bitu value)
     case _guAADrawTriangleWithClip12:
 	// void guAADrawTriangleWithClip(const GrVertex *va, const GrVertex *vb, const GrVertex *vc)
 	FP.grFunction3p = (pfunc3p)fn_pt[i];
-	ReadAndTranslateVertex(vertex[0], param[1]);
-	ReadAndTranslateVertex(vertex[1], param[2]);
-	ReadAndTranslateVertex(vertex[2], param[3]);
+	MEM_BlockRead(param[1], &vertex[0], sizeof(GrVertex));
+
+	MEM_BlockRead(param[2], &vertex[1], sizeof(GrVertex));
+	MEM_BlockRead(param[3], &vertex[2], sizeof(GrVertex));
 	FP.grFunction3p(&vertex[0], &vertex[1], &vertex[2]);
 	break;
     case _guAlphaSource4:
@@ -2030,21 +1974,17 @@ static void process_msg(Bitu value)
 	FP.grFunction1i(param[1]);
 	break;
     case _guDrawPolygonVertexListWithClip8:
-    {
 	// void guDrawPolygonVertexListWithClip(int nverts, const GrVertex vlist[])
 	FP.grFunction1i1p = (pfunc1i1p)fn_pt[i];
-        int nverts = param[1];
-        GrVertex* translated = (GrVertex*)texmem;
-        ReadAndTranslateVertices(translated, param[2], nverts);
-	FP.grFunction1i1p(nverts, translated);
+	MEM_BlockRead(param[2], texmem, sizeof(GrVertex)*param[1]);
+	FP.grFunction1i1p(param[1], texmem);
 	break;
-    }
     case _guDrawTriangleWithClip12:
 	// void guDrawTriangleWithClip(const GrVertex *va, const GrVertex *vb, const GrVertex *vc)
 	FP.grFunction3p = (pfunc3p)fn_pt[i];
-	ReadAndTranslateVertex(vertex[0], param[1]);
-	ReadAndTranslateVertex(vertex[1], param[2]);
-	ReadAndTranslateVertex(vertex[2], param[3]);
+	MEM_BlockRead(param[1], &vertex[0], sizeof(GrVertex));
+	MEM_BlockRead(param[2], &vertex[1], sizeof(GrVertex));
+	MEM_BlockRead(param[3], &vertex[2], sizeof(GrVertex));
 #if LOG_GLIDE
         static int gutri_count = 0;
         if (gutri_count < 1) {

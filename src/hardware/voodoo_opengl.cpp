@@ -1831,6 +1831,12 @@ void voodoo_ogl_vblank_flush(void) {
 
 
 void voodoo_ogl_set_window(voodoo_state *v) {
+	extern GLIDE_Block glide;
+	if (glide.enabled) {
+		LOG_MSG("VOODOO: voodoo_ogl_set_window: Passthrough active, ignoring state update.");
+		return;
+	}
+
         LOG_MSG("VOODOO: voodoo_ogl_set_window called");
 	VOGL_ClearBeginMode();
 
