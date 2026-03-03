@@ -60,6 +60,10 @@ using namespace std;
 
 #endif
 
+extern void GFX_Stop(void);
+extern void GFX_ResetScreen(void);
+extern bool GFX_IsFullscreen(void);
+
 static float int_to_float(const uint32_t i)
 {
     float f;
@@ -107,6 +111,27 @@ static HINSTANCE hdll=NULL;	//  Handle to glide2x lib file
 #else
 static void * hdll=NULL;
 #endif
+
+static void (*setConfig)(const uint32_t flags, void *magic);
+static void (*setConfigRes)(const int res, void (*swap12)());
+
+static int SDLSignValid(const uint32_t sign)
+{
+    static uint32_t SDLSign;
+    SDLSign = (sign)? sign:SDLSign;
+    return (SDLSign == 0x324c4453/*'SDL2'*/);
+}
+
+static void conf_glide2x(const uint32_t flags, const int res)
+{
+    uint32_t sign = 0x58326724 /*'$g2X'*/;
+    if (setConfig)
+        setConfig(flags, &sign);
+    if (setConfigRes)
+        setConfigRes(res, 0);
+    if (sign)
+        SDLSignValid(sign);
+}
 
 #if LOG_GLIDE
 static int GLIDE_count[GLIDE_MAX+2];
@@ -331,6 +356,14 @@ public:
 	    LOG_F(INFO, "Glide:Unable to load glide2x library, glide emulation disabled");
 	    return;
 	}
+
+#ifdef WIN32
+    setConfig = (void (*)(const uint32_t, void *))GetProcAddress(hdll, "_setConfig@8");
+    setConfigRes = (void (*)(const int, void (*)()))GetProcAddress(hdll, "_setConfigRes@8");
+#else
+    setConfig = (void (*)(const uint32_t, void *))dlsym(hdll, "setConfig");
+    setConfigRes = (void (*)(const int,void (*)()))dlsym(hdll, "setConfigRes");
+#endif
 
 	// Allocate some temporary space
 	texmem = (void*)malloc(1600*1200*4);
@@ -1289,6 +1322,19 @@ static void process_msg(Bitu value)
 	GLIDE_ResetScreen(true);
 
 	statWMInfo();
+
+    {
+        int dw, dh;
+        SDL_GL_GetDrawableSize(sdl.window, &dw, &dh);
+        uint32_t flags = GFX_IsFullscreen() ? 0 : 1;
+        // Use 4:3 aspect ratio based on height if window is wider than 4:3
+        int win_width = dw;
+        if (dw * 3 > dh * 4) {
+            win_width = dh * 4 / 3;
+        }
+        LOG_F(INFO, "Glide: Setting wrapper config: flags=0x%x, res=%d", flags, win_width);
+        conf_glide2x(flags, win_width);
+    }
 
 	k = FP.grRFunction1p6i(hwnd, param[2], param[3], param[4], param[5], param[6], param[7]);
 	if(k == FXFALSE) {
